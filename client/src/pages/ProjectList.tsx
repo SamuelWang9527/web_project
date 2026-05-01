@@ -1,0 +1,467 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Table,
+  Card,
+  Button,
+  Input,
+  Select,
+  Modal,
+  Form,
+  DatePicker,
+  message,
+  Popconfirm,
+  Space,
+  Tabs
+} from 'antd';
+import {
+  PlusOutlined,
+  SearchOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  DownloadOutlined,
+  ProjectOutlined,
+  UnorderedListOutlined,
+  ClockCircleOutlined
+} from '@ant-design/icons';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import dayjs from 'dayjs';
+import { useAuth } from '../contexts/AuthContext';
+import * as api from '../utils/api';
+import PendingSchedule from './PendingSchedule';
+import WorkItemList from './WorkItemList';
+import { renderStatusTag } from '../utils/tagRenderers';
+
+const { Option } = Select;
+
+const ProjectList: React.FC = () => {
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingProject, setEditingProject] = useState<any | null>(null);
+  const [form] = Form.useForm();
+  const { hasRole } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isAdmin = () => hasRole('admin');
+
+  // 从URL参数中获取tab值
+  const searchParams = new URLSearchParams(location.search);
+  const tabFromUrl = searchParams.get('tab');
+
+  const [activeTab, setActiveTab] = useState(tabFromUrl || 'projects');
+
+  // 当URL参数变化时更新activeTab
+  useEffect(() => {
+    if (tabFromUrl) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
+
+  // 当切换标签页时更新URL参数
+  const handleTabChange = (key: string) => {
+    setActiveTab(key);
+    navigate(`/projects${key !== 'projects' ? `?tab=${key}` : ''}`);
+  };
+
+  // 筛选条件
+  const [filters, setFilters] = useState({
+    search: '',
+    status: ''
+  });
+
+  // 获取项目列表
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      const response = await api.getProjects(filters as any);
+      const data = (response.data as any)?.data || response.data;
+      setProjects(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('获取项目列表失败:', error);
+      message.error('获取项目列表失败');
+      setProjects([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 初始加载
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  // 当筛选条件变化时重新获取数据
+  useEffect(() => {
+    fetchProjects();
+  }, [filters]);
+
+  // 处理筛选条件变化
+  const handleFilterChange = (name: string, value: any) => {
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // 打开创建/编辑项目模态框
+  const showModal = (project: any = null) => {
+    setEditingProject(project);
+    form.resetFields();
+
+    if (project) {
+      form.setFieldsValue({
+        ...project,
+        startDate: project.startDate ? dayjs(project.startDate) : null,
+        endDate: project.endDate ? dayjs(project.endDate) : null
+      });
+    }
+
+    setModalVisible(true);
+  };
+
+  // 关闭模态框
+  const handleCancel = () => {
+    setModalVisible(false);
+    setEditingProject(null);
+    form.resetFields();
+  };
+
+  // 提交表单
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+
+      if (editingProject) {
+        await api.updateProject(editingProject.id, values);
+        message.success('项目更新成功');
+      } else {
+        await api.createProject(values);
+        message.success('项目创建成功');
+      }
+
+      setModalVisible(false);
+      fetchProjects();
+    } catch (error: any) {
+      console.error('保存项目失败:', error);
+      message.error('保存项目失败: ' + error.message);
+    }
+  };
+
+  // 删除项目
+  const handleDelete = async (id: number) => {
+    try {
+      await api.deleteProject(id);
+      message.success('项目删除成功');
+      fetchProjects();
+    } catch (error: any) {
+      console.error('删除项目失败:', error);
+      message.error('删除项目失败: ' + error.message);
+    }
+  };
+
+  // 导出项目
+  const handleExport = async (id: number) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const apiAny = api as any;
+      const response = await apiAny.exportProject(id);
+
+      if (response.success && response.downloadUrl) {
+        message.success(response.message);
+        api.downloadFile(response.downloadUrl);
+      } else {
+        message.info(response.message);
+      }
+    } catch (error: any) {
+      console.error('导出项目失败:', error);
+      message.error('导出项目失败: ' + error.message);
+    }
+  };
+
+  // 表格列定义
+  const columns: any[] = [
+    {
+      title: '项目名称',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text: any, record: any) => (
+        <Link to={`/projects/${record.id}`}>{text}</Link>
+      )
+    },
+    {
+      title: '描述',
+      dataIndex: 'description',
+      key: 'description',
+      ellipsis: true
+    },
+    {
+      title: '开始日期',
+      dataIndex: 'startDate',
+      key: 'startDate',
+      render: (date: any) => date ? new Date(date).toLocaleDateString() : '-'
+    },
+    {
+      title: '结束日期',
+      dataIndex: 'endDate',
+      key: 'endDate',
+      render: (date: any) => date ? new Date(date).toLocaleDateString() : '-'
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      render: renderStatusTag
+    },
+    {
+      title: '创建者',
+      dataIndex: 'creator',
+      key: 'creator',
+      render: (creator: any) => creator ? creator.username : '-'
+    },
+    {
+      title: '创建时间',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (date: any) => new Date(date).toLocaleDateString()
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 200,
+      render: (_: any, record: any) => (
+        <Space size="small">
+          <Button
+            icon={<EyeOutlined />}
+            size="small"
+            onClick={() => navigate(`/projects/${record.id}`)}
+          />
+          {isAdmin() && (
+            <>
+              <Button
+                icon={<EditOutlined />}
+                size="small"
+                onClick={() => showModal(record)}
+              />
+              <Popconfirm
+                title="确定要删除此项目吗？"
+                onConfirm={() => handleDelete(record.id)}
+                okText="确定"
+                cancelText="取消"
+              >
+                <Button
+                  icon={<DeleteOutlined />}
+                  size="small"
+                  danger
+                />
+              </Popconfirm>
+              <Button
+                icon={<DownloadOutlined />}
+                size="small"
+                onClick={() => handleExport(record.id)}
+              />
+            </>
+          )}
+        </Space>
+      )
+    }
+  ];
+
+  return (
+    <div className="project-management">
+      <Card
+        bordered={false}
+        bodyStyle={{
+          padding: 0,
+          backgroundColor: '#fff'
+        }}
+      >
+        <Tabs
+          activeKey={activeTab}
+          onChange={handleTabChange}
+          type="card"
+          size="large"
+          tabBarStyle={{
+            marginBottom: 0,
+            paddingLeft: 20,
+            paddingRight: 20,
+            borderBottom: '1px solid #f0f0f0',
+            backgroundColor: '#fafafa'
+          }}
+          tabBarGutter={8}
+          items={[
+            {
+              key: 'projects',
+              label: (
+                <span style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '8px 4px',
+                  fontSize: '15px'
+                }}>
+                  <ProjectOutlined style={{ marginRight: 8, fontSize: '18px' }} />
+                  项目列表
+                </span>
+              ),
+              children: (
+                <div style={{ padding: '20px' }}>
+                  {/* 筛选器和操作按钮 */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: 16,
+                    padding: '16px 20px',
+                    background: '#fafafa',
+                    borderRadius: '8px',
+                    border: '1px solid #f0f0f0'
+                  }}>
+                    <div style={{ display: 'flex', gap: 16 }}>
+                      <Input
+                        placeholder="搜索项目名称"
+                        value={filters.search}
+                        onChange={(e) => handleFilterChange('search', e.target.value)}
+                        style={{ width: 200 }}
+                        prefix={<SearchOutlined />}
+                        allowClear
+                      />
+                      <Select
+                        placeholder="状态"
+                        style={{ width: 120 }}
+                        value={filters.status || undefined}
+                        onChange={(value) => handleFilterChange('status', value)}
+                        allowClear
+                      >
+                        <Option value="待处理">待处理</Option>
+                        <Option value="进行中">进行中</Option>
+                        <Option value="已完成">已完成</Option>
+                        <Option value="关闭">关闭</Option>
+                      </Select>
+                    </div>
+
+                    {isAdmin() && (
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={() => showModal()}
+                      >
+                        创建项目
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* 项目列表 */}
+                  <Table
+                    columns={columns}
+                    dataSource={projects}
+                    rowKey="id"
+                    loading={loading}
+                    pagination={{
+                      pageSize: 10,
+                      showSizeChanger: true,
+                      showQuickJumper: true,
+                      showTotal: (total: number) => `共 ${total} 条`
+                    }}
+                    style={{ marginTop: 8 }}
+                  />
+                </div>
+              )
+            },
+            {
+              key: 'workItems',
+              label: (
+                <span style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '8px 4px',
+                  fontSize: '15px'
+                }}>
+                  <UnorderedListOutlined style={{ marginRight: 8, fontSize: '18px' }} />
+                  工作项列表
+                </span>
+              ),
+              children: <div style={{ padding: '20px' }}><WorkItemList /></div>
+            },
+            ...(isAdmin() ? [{
+              key: 'pendingItems',
+              label: (
+                <span style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '8px 4px',
+                  fontSize: '15px'
+                }}>
+                  <ClockCircleOutlined style={{ marginRight: 8, fontSize: '18px' }} />
+                  待排期工作项
+                </span>
+              ),
+              children: <div style={{ padding: '20px' }}><PendingSchedule /></div>
+            }] : [])
+          ]}
+        />
+      </Card>
+
+      {/* 创建/编辑项目模态框 */}
+      <Modal
+        title={editingProject ? '编辑项目' : '创建项目'}
+        open={modalVisible}
+        onOk={handleSubmit}
+        onCancel={handleCancel}
+        okText="保存"
+        cancelText="取消"
+        width={600}
+        maskClosable={false}
+        destroyOnClose
+      >
+        <Form
+          form={form}
+          layout="vertical"
+        >
+          <Form.Item
+            name="name"
+            label="项目名称"
+            rules={[{ required: true, message: '请输入项目名称' }]}
+          >
+            <Input placeholder="请输入项目名称" />
+          </Form.Item>
+
+          <Form.Item
+            name="description"
+            label="项目描述"
+          >
+            <Input.TextArea rows={4} placeholder="请输入项目描述" />
+          </Form.Item>
+
+          <Form.Item
+            name="startDate"
+            label="开始日期"
+          >
+            <DatePicker style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Form.Item
+            name="endDate"
+            label="结束日期"
+          >
+            <DatePicker style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Form.Item
+            name="status"
+            label="状态"
+            initialValue="待处理"
+          >
+            <Select>
+              <Option value="待处理">待处理</Option>
+              <Option value="进行中">进行中</Option>
+              <Option value="已完成">已完成</Option>
+              <Option value="关闭">关闭</Option>
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
+  );
+};
+
+export default ProjectList;
