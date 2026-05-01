@@ -159,7 +159,7 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: '没有找到工作项，请先创建工作项' } })
     }
 
-    const exportsDir = path.join(__dirname, '../../../../public/exports')
+    const exportsDir = path.join(__dirname, '../../../public/exports')
     if (!fs.existsSync(exportsDir)) fs.mkdirSync(exportsDir, { recursive: true })
 
     const workbook = new ExcelJS.Workbook()

@@ -61,24 +61,23 @@ export async function buildApp(): Promise<FastifyInstance> {
     })
   })
 
-  // 静态文件服务 - uploads
-  const uploadsDir = path.join(__dirname, '../../public/uploads')
+  // 静态文件服务 - uploads（首次注册 decorateReply 默认为 true，使 reply.sendFile 可用）
+  const uploadsDir = path.join(__dirname, '../public/uploads')
   await app.register(staticFiles, {
     root: uploadsDir,
     prefix: '/uploads/',
-    decorateReply: false,
   })
 
   // 静态文件服务 - exports
-  const exportsDir = path.join(__dirname, '../../public/exports')
+  const exportsDir = path.join(__dirname, '../public/exports')
   await app.register(staticFiles, {
     root: exportsDir,
     prefix: '/exports/',
     decorateReply: false,
   })
 
-  // SPA fallback — 非 /api 路由返回前端 index.html
-  const clientDistDir = path.join(__dirname, '../../../client/dist')
+  // SPA fallback — 非 /api 路由返回前端 index.html (__dirname/../.. = project root)
+  const clientDistDir = path.join(__dirname, '../../client/dist')
   await app.register(staticFiles, {
     root: clientDistDir,
     prefix: '/',

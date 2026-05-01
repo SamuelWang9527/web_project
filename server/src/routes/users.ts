@@ -121,7 +121,7 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
 
       for await (const part of parts) {
         if (part.type === 'file' && part.fieldname === 'avatar') {
-          const avatarDir = path.join(__dirname, '../../../public/uploads/images')
+          const avatarDir = path.join(__dirname, '../../public/uploads/images')
           if (!fs.existsSync(avatarDir)) fs.mkdirSync(avatarDir, { recursive: true })
 
           const ext = path.extname(part.filename || '.jpg')

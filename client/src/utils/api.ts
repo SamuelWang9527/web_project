@@ -121,6 +121,9 @@ export const getPendingItems = (params?: Record<string, unknown>) =>
 export const getUsers = (params?: Record<string, unknown>) =>
   instance.get<ApiSuccess<User[]>>('/users', { params })
 
+export const getAdmins = () =>
+  instance.get<ApiSuccess<User[]>>('/users/admins')
+
 export const updateUser = (id: number, data: Partial<User>) =>
   instance.put<ApiSuccess<User>>(`/users/${id}`, data)
 
@@ -134,5 +137,29 @@ export const uploadAvatar = (file: File) => {
 
 export const getWorkItemActivities = (workItemId: number) =>
   instance.get(`/work-items/${workItemId}/activities`)
+
+export const addWorkItemComment = (workItemId: number, data: { content: string }) =>
+  instance.post(`/work-items/${workItemId}/comments`, data)
+
+export const deleteWorkItemAttachment = (workItemId: number, attachmentId: string) =>
+  instance.delete(`/work-items/${workItemId}/attachments/${attachmentId}`)
+
+export const exportWorkItems = (params?: Record<string, unknown>) =>
+  instance.get('/work-items/export', { params, responseType: 'blob' })
+
+export const exportProject = (id: number) =>
+  instance.get(`/projects/${id}/export`, { responseType: 'blob' })
+
+export const addTicketComment = (ticketId: number, data: { content: string }) =>
+  instance.post(`/tickets/${ticketId}/comments`, data)
+
+export const updatePassword = (userId: number, data: { currentPassword: string; newPassword: string }) =>
+  instance.put(`/users/${userId}/password`, data)
+
+export const deleteUser = (userId: number) =>
+  instance.delete(`/users/${userId}`)
+
+export const getPendingScheduleItems = (params?: Record<string, unknown>) =>
+  instance.get<ApiSuccess<WorkItem[]>>('/work-items/pending-schedule', { params })
 
 export default instance

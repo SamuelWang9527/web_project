@@ -213,7 +213,7 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: '项目不存在' } })
     }
 
-    const exportsDir = path.join(__dirname, '../../../public/exports')
+    const exportsDir = path.join(__dirname, '../../public/exports')
     if (!fs.existsSync(exportsDir)) {
       fs.mkdirSync(exportsDir, { recursive: true })
     }

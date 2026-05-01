@@ -80,7 +80,7 @@ const attachmentRoutes: FastifyPluginAsync = async (fastify) => {
       const mimetype = part.mimetype || 'application/octet-stream'
       const isImage = mimetype.startsWith('image/')
       const subDir = isImage ? 'images' : 'files'
-      const uploadDir = path.join(__dirname, '../../../../public/uploads', subDir)
+      const uploadDir = path.join(__dirname, '../../../public/uploads', subDir)
       if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
 
       const ext = path.extname(part.filename || '')
