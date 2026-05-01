@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model projects {
+  id          Int              @id @default(autoincrement())
+  name        String           @db.VarChar(255)
+  description String?          @db.Text
+  startDate   DateTime?        @db.DateTime(0)
+  endDate     DateTime?        @db.DateTime(0)
+  status      projects_status? @default(dbgenerated("待处理"))
+  createdById Int
+  createdAt   DateTime         @db.DateTime(0)
+  updatedAt   DateTime         @db.DateTime(0)
+  users       users            @relation(fields: [createdById], references: [id], onDelete: Cascade, map: "projects_ibfk_1")
+  workitems   workitems[]
+
+  @@index([createdById], map: "createdById")
+}
+
+model tickets {
+  id                               Int               @id @default(autoincrement())
+  ticketNumber                     String            @unique(map: "ticketNumber") @db.VarChar(255)
+  title                            String            @db.VarChar(255)
+  description                      String?           @db.Text
+  priority                         tickets_priority? @default(dbgenerated("中"))
+  status                           tickets_status?   @default(dbgenerated("待处理"))
+  assigneeId                       Int?
+  createdById                      Int
+  comments                         Json?
+  createdAt                        DateTime          @db.DateTime(0)
+  updatedAt                        DateTime          @db.DateTime(0)
+  users_tickets_assigneeIdTousers  users?            @relation("tickets_assigneeIdTousers", fields: [assigneeId], references: [id], map: "tickets_ibfk_1")
+  users_tickets_createdByIdTousers users             @relation("tickets_createdByIdTousers", fields: [createdById], references: [id], onDelete: Cascade, map: "tickets_ibfk_2")
+
+  @@index([assigneeId], map: "assigneeId")
+  @@index([createdById], map: "createdById")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model users {
+  id                                     Int                   @id @default(autoincrement())
+  username                               String                @unique(map: "username") @db.VarChar(255)
+  password                               String                @db.VarChar(255)
+  phone                                  String                @unique(map: "phone") @db.VarChar(255)
+  email                                  String?               @db.Text
+  brand                                  users_brand
+  role                                   users_role?           @default(user)
+  status                                 String?               @db.VarChar(200)
+  avatar                                 String?               @db.VarChar(255)
+  createdAt                              DateTime              @db.DateTime(0)
+  updatedAt                              DateTime              @db.DateTime(0)
+  projects                               projects[]
+  tickets_tickets_assigneeIdTousers      tickets[]             @relation("tickets_assigneeIdTousers")
+  tickets_tickets_createdByIdTousers     tickets[]             @relation("tickets_createdByIdTousers")
+  workitem_activities                    workitem_activities[]
+  workitems_workitems_assigneeIdTousers  workitems[]           @relation("workitems_assigneeIdTousers")
+  workitems_workitems_createdByIdTousers workitems[]           @relation("workitems_createdByIdTousers")
+}
+
+model workitem_activities {
+  id          Int                      @id @default(autoincrement())
+  workItemId  Int
+  userId      Int
+  type        workitem_activities_type
+  field       String?                  @db.VarChar(255)
+  oldValue    String?                  @db.Text
+  newValue    String?                  @db.Text
+  description String                   @db.Text
+  createdAt   DateTime                 @db.DateTime(0)
+  updatedAt   DateTime                 @db.DateTime(0)
+  workitems   workitems                @relation(fields: [workItemId], references: [id], onDelete: Cascade, map: "workitem_activities_ibfk_1")
+  users       users                    @relation(fields: [userId], references: [id], onDelete: NoAction, map: "workitem_activities_ibfk_2")
+
+  @@index([createdAt], map: "workitem_activities_created_at")
+  @@index([type], map: "workitem_activities_type")
+  @@index([userId], map: "workitem_activities_user_id")
+  @@index([workItemId], map: "workitem_activities_work_item_id")
+}
+
+model workitems {
+  id                                 Int                   @id @default(autoincrement())
+  title                              String                @db.VarChar(255)
+  description                        String?               @db.Text
+  type                               workitems_type
+  status                             workitems_status?     @default(dbgenerated("待处理"))
+  priority                           workitems_priority?   @default(dbgenerated("中"))
+  source                             workitems_source?
+  estimatedHours                     Float?                @db.Float
+  actualHours                        Float?                @db.Float
+  scheduledStartDate                 DateTime?             @db.DateTime(0)
+  scheduledEndDate                   DateTime?             @db.DateTime(0)
+  expectedCompletionDate             DateTime?             @db.DateTime(0)
+  completionDate                     DateTime?             @db.DateTime(0)
+  projectId                          Int?
+  assigneeId                         Int?
+  createdById                        Int
+  attachments                        Json?
+  comments                           Json?
+  createdAt                          DateTime              @db.DateTime(0)
+  updatedAt                          DateTime              @db.DateTime(0)
+  workitem_activities                workitem_activities[]
+  projects                           projects?             @relation(fields: [projectId], references: [id], map: "workitems_ibfk_1")
+  users_workitems_assigneeIdTousers  users?                @relation("workitems_assigneeIdTousers", fields: [assigneeId], references: [id], map: "workitems_ibfk_2")
+  users_workitems_createdByIdTousers users                 @relation("workitems_createdByIdTousers", fields: [createdById], references: [id], onDelete: Cascade, map: "workitems_ibfk_3")
+
+  @@index([assigneeId], map: "assigneeId")
+  @@index([createdById], map: "createdById")
+  @@index([projectId], map: "projectId")
+}
+
+enum workitem_activities_type {
+  create
+  update
+  status_change
+  assignee_change
+  comment
+  attachment_add
+  attachment_delete
+}
+
+enum workitems_type {
+  Planning   @map("规划")
+  Requirement @map("需求")
+  Task       @map("事务")
+  Defect     @map("缺陷")
+}
+
+enum workitems_status {
+  Pending    @map("待处理")
+  InProgress @map("进行中")
+  Completed  @map("已完成")
+  Closed     @map("关闭")
+}
+
+enum tickets_priority {
+  Urgent @map("紧急")
+  High   @map("高")
+  Medium @map("中")
+  Low    @map("低")
+}
+
+enum workitems_priority {
+  Urgent @map("紧急")
+  High   @map("高")
+  Medium @map("中")
+  Low    @map("低")
+}
+
+enum users_brand {
+  EL
+  CL
+  MAC
+  DA
+  LAB
+  OR
+  Dr_jart_ @map("Dr.jart+")
+  IT
+}
+
+enum tickets_status {
+  Pending    @map("待处理")
+  InProgress @map("进行中")
+  Completed  @map("已完成")
+  Closed     @map("关闭")
+}
+
+enum projects_status {
+  Pending    @map("待处理")
+  InProgress @map("进行中")
+  Completed  @map("已完成")
+  Closed     @map("关闭")
+}
+
+enum workitems_source {
+  Internal @map("内部需求")
+  Brand    @map("品牌需求")
+}
+
+enum users_role {
+  user
+  admin
+  super_admin
+}
