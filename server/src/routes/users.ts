@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from 'fastify'
-import { prisma } from '../auth'
+import { prisma } from '../lib/prisma'
 import bcrypt from 'bcryptjs'
 import path from 'path'
 import fs from 'fs'

@@ -1,8 +1,9 @@
 import { FastifyPluginAsync } from 'fastify'
-import { prisma } from '../auth'
+import { prisma } from '../lib/prisma'
 import ExcelJS from 'exceljs'
 import path from 'path'
 import fs from 'fs'
+import { serializeProject, serializeWorkItem } from '../utils/enumTransform'
 
 const requireAuth = async (
   request: import('fastify').FastifyRequest,
@@ -47,7 +48,7 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
       orderBy: { createdAt: 'desc' }
     })
 
-    return reply.send({ success: true, data: projects })
+    return reply.send({ success: true, data: projects.map(p => serializeProject(p as any)) })
   })
 
   // 创建新项目（仅管理员）
@@ -83,7 +84,7 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
       }
     })
 
-    return reply.status(201).send({ success: true, data: project })
+    return reply.status(201).send({ success: true, data: serializeProject(project as any) })
   })
 
   // 获取单个项目详情
@@ -115,7 +116,7 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: '项目不存在' } })
     }
 
-    return reply.send({ success: true, data: project })
+    return reply.send({ success: true, data: serializeProject(project as any) })
   })
 
   // 更新项目（管理员或创建者）
@@ -156,7 +157,7 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
 
     const updated = await prisma.projects.update({ where: { id }, data: updateData })
 
-    return reply.send({ success: true, data: updated })
+    return reply.send({ success: true, data: serializeProject(updated as any) })
   })
 
   // 删除项目（管理员或创建者）
@@ -260,12 +261,13 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
     workItemsSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } }
 
     for (const item of project.workitems) {
+      const s = serializeWorkItem(item as any)
       workItemsSheet.addRow({
         id: item.id,
         title: item.title,
-        type: item.type,
-        status: item.status,
-        priority: item.priority,
+        type: s.type,
+        status: s.status,
+        priority: s.priority,
         creator: item.users_workitems_createdByIdTousers?.username || '',
         assignee: item.users_workitems_assigneeIdTousers?.username || '',
         source: item.source || '',

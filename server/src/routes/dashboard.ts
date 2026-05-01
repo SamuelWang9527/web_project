@@ -1,6 +1,7 @@
 import { FastifyPluginAsync } from 'fastify'
-import { prisma } from '../auth'
+import { prisma } from '../lib/prisma'
 import type { Prisma } from '../generated/prisma/client'
+import { toEnumStatus, serializeWorkItem, zhStatus, zhPriority } from '../utils/enumTransform'
 
 const requireAuth = async (
   request: import('fastify').FastifyRequest,
@@ -120,8 +121,11 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
 
     if (title) where.title = { contains: title }
     if (type) where.type = type
-    // Allow status filter only if not a completed/closed status
-    if (status && status !== 'Completed' && status !== 'Closed') where.status = status
+    // Normalize Chinese status from client; only apply if not completed/closed
+    const normalizedStatus = toEnumStatus(status)
+    if (normalizedStatus && normalizedStatus !== 'Completed' && normalizedStatus !== 'Closed') {
+      where.status = normalizedStatus
+    }
     if (priority) where.priority = priority
     if (assigneeId) where.assigneeId = parseInt(assigneeId)
     if (source) where.source = source
@@ -153,7 +157,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
       return { ...item, daysFromCreation: diffDays }
     })
 
-    return reply.send({ success: true, data: result })
+    return reply.send({ success: true, data: result.map(item => serializeWorkItem(item as any)) })
   })
 
   // 获取甘特图数据
@@ -201,11 +205,11 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
       title: item.title,
       start: item.scheduledStartDate,
       end: item.scheduledEndDate,
-      progress: item.status === 'Completed' ? 100 :
-                item.status === 'InProgress' ? 50 : 0,
+      // Compare against Prisma English enum names before serializing
+      progress: item.status === 'Completed' ? 100 : item.status === 'InProgress' ? 50 : 0,
       type: item.type,
-      priority: item.priority,
-      status: item.status,
+      priority: zhPriority(item.priority as string),
+      status: zhStatus(item.status as string),
       project: item.projects?.name ?? null,
       assignee: item.users_workitems_assigneeIdTousers?.username ?? null
     }))

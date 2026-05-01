@@ -1,6 +1,7 @@
 import { FastifyPluginAsync } from 'fastify'
-import { prisma } from '../auth'
+import { prisma } from '../lib/prisma'
 import type { Prisma } from '../generated/prisma/client'
+import { toEnumStatus, toEnumPriority, serializeTicket } from '../utils/enumTransform'
 
 const requireAuth = async (
   request: import('fastify').FastifyRequest,
@@ -45,8 +46,8 @@ const ticketRoutes: FastifyPluginAsync = async (fastify) => {
 
     const where: Record<string, unknown> = {}
 
-    if (status) where.status = status
-    if (priority) where.priority = priority
+    if (status) where.status = toEnumStatus(status)
+    if (priority) where.priority = toEnumPriority(priority)
     if (search) where.title = { contains: search }
     if (createdById) where.createdById = parseInt(createdById)
     if (unassigned === 'true') {
@@ -85,7 +86,7 @@ const ticketRoutes: FastifyPluginAsync = async (fastify) => {
       orderBy: { createdAt: 'desc' }
     })
 
-    return reply.send({ success: true, data: tickets })
+    return reply.send({ success: true, data: tickets.map(t => serializeTicket(t as any)) })
   })
 
   // 创建工单
@@ -142,7 +143,7 @@ const ticketRoutes: FastifyPluginAsync = async (fastify) => {
       }
     })
 
-    return reply.status(201).send({ success: true, data: ticket })
+    return reply.status(201).send({ success: true, data: serializeTicket(ticket as any) })
   })
 
   // 获取单个工单详情
@@ -172,7 +173,7 @@ const ticketRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN', message: '没有权限查看此工单' } })
     }
 
-    return reply.send({ success: true, data: ticket })
+    return reply.send({ success: true, data: serializeTicket(ticket as any) })
   })
 
   // 更新工单（仅管理员）
@@ -217,7 +218,7 @@ const ticketRoutes: FastifyPluginAsync = async (fastify) => {
       }
     })
 
-    return reply.send({ success: true, data: updated })
+    return reply.send({ success: true, data: serializeTicket(updated as any) })
   })
 
   // 添加评论

@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from 'fastify'
-import { prisma } from '../../auth'
+import { prisma } from '../../lib/prisma'
 
 const requireAuth = async (
   request: import('fastify').FastifyRequest,

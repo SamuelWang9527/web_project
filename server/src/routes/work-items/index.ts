@@ -1,8 +1,12 @@
 import { FastifyPluginAsync } from 'fastify'
-import { prisma } from '../../auth'
+import { prisma } from '../../lib/prisma'
 import ExcelJS from 'exceljs'
 import path from 'path'
 import fs from 'fs'
+import {
+  toEnumStatus, toEnumType, toEnumPriority, toEnumSource,
+  serializeWorkItem, zhStatus,
+} from '../../utils/enumTransform'
 
 const requireAuth = async (
   request: import('fastify').FastifyRequest,
@@ -85,11 +89,11 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
 
     if (title) where.title = { contains: title }
     if (projectId) where.projectId = parseInt(projectId)
-    if (type) where.type = type
-    if (status) where.status = status
-    if (priority) where.priority = priority
+    if (type) where.type = toEnumType(type)
+    if (status) where.status = toEnumStatus(status)
+    if (priority) where.priority = toEnumPriority(priority)
     if (assigneeId) where.assigneeId = parseInt(assigneeId)
-    if (source) where.source = source
+    if (source) where.source = toEnumSource(source)
     if (createdById) where.createdById = parseInt(createdById)
 
     if (startDate && endDate) {
@@ -110,7 +114,7 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
       orderBy: { createdAt: 'desc' }
     })
 
-    return reply.send({ success: true, data: workItems })
+    return reply.send({ success: true, data: workItems.map(item => serializeWorkItem(item as any)) })
   })
 
   // 获取待排期工作项（仅管理员）
@@ -133,7 +137,7 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
       orderBy: { createdAt: 'desc' }
     })
 
-    return reply.send({ success: true, data: workItems })
+    return reply.send({ success: true, data: workItems.map(item => serializeWorkItem(item as any)) })
   })
 
   // 导出工作项为 Excel
@@ -187,16 +191,17 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
     worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } }
 
     for (const item of workItems) {
+      const s = serializeWorkItem(item as any)
       worksheet.addRow({
         id: item.id,
         title: item.title,
-        type: item.type,
-        status: item.status,
-        priority: item.priority,
+        type: s.type,
+        status: s.status,
+        priority: s.priority,
         project: item.projects?.name || '',
         creator: item.users_workitems_createdByIdTousers?.username || '',
         assignee: item.users_workitems_assigneeIdTousers?.username || '',
-        source: item.source || '',
+        source: s.source || '',
         createdAt: item.createdAt ? new Date(item.createdAt).toLocaleString() : '',
         expectedCompletionDate: item.expectedCompletionDate ? new Date(item.expectedCompletionDate).toLocaleDateString() : '',
         scheduledStartDate: item.scheduledStartDate ? new Date(item.scheduledStartDate).toLocaleDateString() : '',
@@ -269,7 +274,7 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
         size: a.size || 0
       }))
 
-    return reply.send({ success: true, data: { ...workItem, attachments } })
+    return reply.send({ success: true, data: serializeWorkItem({ ...workItem, attachments } as any) })
   })
 
   // 创建工作项
@@ -308,11 +313,11 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
     const workItem = await prisma.workitems.create({
       data: {
         title: String(title),
-        type: (type as any) || 'Task',
+        type: (toEnumType(type as string | undefined) as any) || 'Task',
         description: description ? String(description) : '',
-        status: (status as any) || 'Pending',
-        priority: (priority as any) || 'Medium',
-        source: source ? (source as any) : null,
+        status: (toEnumStatus(status as string | undefined) as any) || 'Pending',
+        priority: (toEnumPriority(priority as string | undefined) as any) || 'Medium',
+        source: source ? (toEnumSource(source as string) as any) : null,
         expectedCompletionDate: expectedCompletionDate ? new Date(String(expectedCompletionDate)) : null,
         projectId: projectId ? Number(projectId) : null,
         assigneeId: assigneeId ? Number(assigneeId) : null,
@@ -338,7 +343,7 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
-    return reply.status(201).send({ success: true, data: workItem })
+    return reply.status(201).send({ success: true, data: serializeWorkItem(workItem as any) })
   })
 
   // 更新工作项
@@ -359,7 +364,15 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN', message: '权限不足' } })
     }
 
-    const body = request.body as Record<string, unknown>
+    const rawBody = request.body as Record<string, unknown>
+    // Normalize Chinese enum values from client to Prisma enum names
+    const body: Record<string, unknown> = {
+      ...rawBody,
+      ...(rawBody.status !== undefined && { status: toEnumStatus(String(rawBody.status)) }),
+      ...(rawBody.type !== undefined && { type: toEnumType(String(rawBody.type)) }),
+      ...(rawBody.priority !== undefined && { priority: toEnumPriority(String(rawBody.priority)) }),
+      ...(rawBody.source !== undefined && { source: toEnumSource(String(rawBody.source)) }),
+    }
 
     const updateData: Record<string, unknown> = { updatedAt: new Date() }
 
@@ -382,9 +395,11 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
 
       // Activity logging per field
       if (field === 'status') {
+        const oldStatusZh = zhStatus((workItem as any)[field] as string)
+        const newStatusZh = zhStatus(String(body[field]))
         await recordActivity(id, request.user!.id, 'status_change', field,
-          String((workItem as any)[field] ?? ''), String(body[field]),
-          `将状态从 "${(workItem as any)[field]}" 修改为 "${body[field]}"`)
+          oldStatusZh, newStatusZh,
+          `将状态从 "${oldStatusZh}" 修改为 "${newStatusZh}"`)
 
         // Auto-set completionDate when status → Completed
         if (body[field] === 'Completed' && (workItem as any)[field] !== 'Completed') {
@@ -486,7 +501,7 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
       }
     })
 
-    return reply.send({ success: true, data: updated })
+    return reply.send({ success: true, data: serializeWorkItem(updated as any) })
   })
 
   // 删除工作项

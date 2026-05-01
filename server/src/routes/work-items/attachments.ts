@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from 'fastify'
-import { prisma } from '../../auth'
+import { prisma } from '../../lib/prisma'
 import type { Prisma } from '../../generated/prisma/client'
 import path from 'path'
 import fs from 'fs'
