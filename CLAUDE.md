@@ -6,56 +6,69 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Server (run from `server/`)
 ```bash
-npm install          # Install dependencies
-npm start            # Start server (nodemon, port 5000)
-node scripts/resetDatabase.js  # Reset and reseed DB (destructive)
+npm run dev              # Dev server with hot reload (ts-node + nodemon, port 5000)
+npm run build            # Compile TypeScript → dist/
+npm start                # Run compiled dist/index.js
+npm run typecheck        # TypeScript type checking only
+npm run prisma:generate  # Regenerate Prisma client after schema changes
+npm run prisma:migrate   # Run pending database migrations
+npm run prisma:pull      # Introspect live DB into schema.prisma
 ```
 
 ### Client (run from `client/`)
 ```bash
-npm install          # Install dependencies
-npm start            # Dev server (port 3000, proxies API to :5000)
-npm run build        # Production build → ../client/build (served by Express)
-npm test             # Run tests (react-scripts Jest)
+npm run dev       # Vite dev server (port 3000, proxies /api to :5000)
+npm run build     # TypeScript check + Vite build → dist/ (served by Fastify)
+npm run preview   # Preview production build locally
+npm run typecheck # TypeScript type checking only
 ```
 
-No linter config is present — no eslint or prettier commands.
+No linter or test config is present.
 
 ## Architecture
 
-This is a full-stack project management system: a monorepo with separate `client/` (React) and `server/` (Express + MySQL) directories. In production, Express serves the built React app from `client/build/` alongside the API.
+Full-stack project management system: monorepo with `client/` (React + Vite + TypeScript) and `server/` (Fastify + Prisma + TypeScript). In production, Fastify serves the built React app from `client/dist/` via `@fastify/static`.
 
-### Authentication & Authorization
+## Authentication & Authorization
 
-JWT-based auth flows through `server/middleware/auth.js`. The client stores the token and injects it via an Axios interceptor in `client/src/utils/api.js`. Three roles exist: `user`, `admin`, `super_admin`. `client/src/App.js` enforces route-level role guards with `ProtectedRoute`, `AdminRoute`, and `TicketRoute` components. `AuthContext` (`client/src/contexts/AuthContext.js`) manages auth state globally.
+Stateless JWT auth. On login, the server signs a JWT (`JWT_SECRET`, default 6h expiry) and returns `{ token, user }`. The client stores the token in `localStorage` and an Axios request interceptor in `client/src/utils/api.ts` injects `Authorization: Bearer <token>` on every request. The server-side Fastify auth plugin (`server/src/plugins/auth.plugin.ts`) verifies the token and populates `request.user`.
 
-### Backend Structure
+Three roles: `user`, `admin`, `super_admin`. `AuthContext.hasRole()` uses array-index comparison for role hierarchy. `App.tsx` enforces route guards via `ProtectedRoute`, `AdminRoute`, and `TicketRoute`.
 
-- `server/app.js` — Express setup: CORS (production origin: `pipecode.asia`), middleware, route mounting, static file serving, frontend fallback, global error handler
-- `server/index.js` — Entry point: DB init, Sequelize sync, HTTP server on port 5000
-- `server/config/database.js` — Auto-creates the MySQL database if it doesn't exist
-- `server/models/index.js` — Defines all associations (User→Projects CASCADE, Project→WorkItems, WorkItem→WorkItemActivity CASCADE, User→Tickets, etc.)
-- `server/routes/workItems.js` — Largest route file (59KB); handles work item CRUD, file attachments, Excel export, activity logging, and Gantt data
-- `server/middleware/upload.js` — Multer config; uploaded files go to `server/public/uploads/` (images, files, avatars) and exports to `server/public/exports/`
+## Server Structure
 
-### Frontend Structure
+- `server/src/index.ts` — Entry point: Prisma connect, Fastify listen on port 5000
+- `server/src/app.ts` — Fastify setup: registers CORS (`https://pipecode.asia` in prod, open in dev), `@fastify/multipart` (20MB max), `@fastify/static` for uploads/exports/SPA, auth plugin, and all route prefixes
+- `server/src/lib/prisma.ts` — Shared `PrismaClient` (MariaDB adapter)
+- `server/src/plugins/auth.plugin.ts` — JWT verification Fastify plugin; decorates `request.user`
+- `server/src/routes/` — One file per domain (`auth`, `projects`, `users`, `tickets`, `dashboard`) plus `work-items/` subdirectory (`index.ts`, `attachments.ts`, `comments.ts`)
+- `server/prisma/schema.prisma` — Source of truth for all data models and relations
 
-- `client/src/App.js` — All route definitions with role-based guards
-- `client/src/utils/api.js` — Axios instance with JWT interceptor; all API call functions live here
-- `client/src/pages/` — One file per page; `WorkItemDetail.js` (46KB) and `Dashboard.js` (29KB) are the most complex
-- `client/src/contexts/AuthContext.js` — Global auth state; wrap with this when needing user info
-- Ant Design (`antd` v5) is the UI component library with `zh_CN` locale set globally in `index.js`
-- `@ant-design/charts` / `@ant-design/plots` used for dashboard data visualizations
-- `gantt-task-react` used for Gantt chart view in work items
+## Data Models (Prisma)
 
-### Data Models
+Five models in MySQL: `users`, `projects`, `workitems`, `tickets`, `workitem_activities`.
 
-Five Sequelize models: `User`, `Project`, `WorkItem`, `Ticket`, `WorkItemActivity`. The associations defined in `models/index.js` are the source of truth for relationships — not the individual model files.
+Key design decisions:
+- `workitems.attachments` and `workitems.comments` are stored as JSON columns (not separate tables)
+- `workitem_activities` provides a full audit trail (create/update/status_change/assignee_change/comment/attachment_add/delete) with `field`, `oldValue`, `newValue`
+- `tickets` are standalone — not linked to projects or work items
+- Prisma enums use `@map("中文")` for Chinese display values
 
-### File Uploads
+## Client Structure
 
-Files are stored on disk (not in the DB) under `server/public/uploads/`. The `upload.js` middleware validates MIME types and enforces a 20MB limit (configurable via `MAX_FILE_SIZE` env var). File paths are persisted in the DB and served as static assets.
+- `client/src/App.tsx` — All routes (code-split via `React.lazy()`), role guards
+- `client/src/utils/api.ts` — Axios instance (base: `/api`, 15s timeout); all API functions live here; 401 response clears localStorage token
+- `client/src/contexts/AuthContext.tsx` — Global auth state; rehydrates user from stored token on mount
+- `client/src/pages/` — One file per page; `WorkItemDetail.tsx` and `Dashboard.tsx` are the most complex
+- Ant Design v5 (`antd`) with `zh_CN` locale set in `main.tsx`
+- `@ant-design/plots` for dashboard charts; `gantt-task-react` for Gantt view
 
-### Environment Variables
+## File Uploads
 
-Server requires a `.env` with: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `MAX_FILE_SIZE`. Client proxies API requests to `http://localhost:5000` during development (set in `client/package.json`).
+Uploaded files land in `server/public/uploads/images/` or `server/public/uploads/files/` (split by MIME type). Exports go to `server/public/exports/`. Metadata (filename, originalName, path, mimetype, size) is stored as JSON in `workitems.attachments`. Static assets are served at `/uploads/` and `/exports/` routes. Limit: 20MB, configurable via `MAX_FILE_SIZE` env var.
+
+## Environment Variables
+
+Server `.env` requires: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DATABASE_URL` (Prisma connection string), `JWT_SECRET`, `JWT_EXPIRES_IN`, `MAX_FILE_SIZE`. Client requires no `.env` — Vite proxies `/api` to `http://localhost:5000` during development.
+
+Admin bootstrap: run `createAdmin.ts` from `server/` via `npx ts-node scripts/createAdmin.ts` (needs `.env`).
