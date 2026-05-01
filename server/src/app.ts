@@ -1,8 +1,19 @@
+import 'dotenv/config'
 import Fastify, { FastifyInstance } from 'fastify'
 import cors from '@fastify/cors'
 import multipart from '@fastify/multipart'
 import staticFiles from '@fastify/static'
 import path from 'path'
+
+import authPlugin from './plugins/auth.plugin'
+import authRoutes from './routes/auth'
+import projectRoutes from './routes/projects'
+import userRoutes from './routes/users'
+import workItemRoutes from './routes/work-items/index'
+import attachmentRoutes from './routes/work-items/attachments'
+import commentRoutes from './routes/work-items/comments'
+import ticketRoutes from './routes/tickets'
+import dashboardRoutes from './routes/dashboard'
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -24,6 +35,32 @@ export async function buildApp(): Promise<FastifyInstance> {
     },
   })
 
+  // Auth plugin（JWT 验证，注入 request.user）
+  await app.register(authPlugin)
+
+  // API 路由
+  await app.register(authRoutes, { prefix: '/api/auth' })
+  await app.register(projectRoutes, { prefix: '/api/projects' })
+  await app.register(userRoutes, { prefix: '/api/users' })
+  await app.register(workItemRoutes, { prefix: '/api/work-items' })
+  await app.register(attachmentRoutes, { prefix: '/api/work-items' })
+  await app.register(commentRoutes, { prefix: '/api/work-items' })
+  await app.register(ticketRoutes, { prefix: '/api/tickets' })
+  await app.register(dashboardRoutes, { prefix: '/api/dashboard' })
+
+  // 全局错误处理
+  app.setErrorHandler((error: Error & { statusCode?: number; code?: string }, _request, reply) => {
+    app.log.error(error)
+    const statusCode = error.statusCode ?? 500
+    reply.status(statusCode).send({
+      success: false,
+      error: {
+        code: error.code ?? 'INTERNAL_ERROR',
+        message: error.message ?? 'Internal server error',
+      },
+    })
+  })
+
   // 静态文件服务 - uploads
   const uploadsDir = path.join(__dirname, '../../public/uploads')
   await app.register(staticFiles, {
@@ -39,21 +76,6 @@ export async function buildApp(): Promise<FastifyInstance> {
     prefix: '/exports/',
     decorateReply: false,
   })
-
-  // 全局错误处理
-  app.setErrorHandler((error, _request, reply) => {
-    app.log.error(error)
-    const statusCode = (error as { statusCode?: number }).statusCode ?? 500
-    reply.status(statusCode).send({
-      success: false,
-      error: {
-        code: (error as { code?: string }).code ?? 'INTERNAL_ERROR',
-        message: error.message ?? 'Internal server error',
-      },
-    })
-  })
-
-  // API 路由在 Task 17 中注册
 
   // SPA fallback — 非 /api 路由返回前端 index.html
   const clientDistDir = path.join(__dirname, '../../../client/dist')

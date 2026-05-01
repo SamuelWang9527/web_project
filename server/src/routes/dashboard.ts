@@ -1,5 +1,6 @@
 import { FastifyPluginAsync } from 'fastify'
 import { prisma } from '../auth'
+import type { Prisma } from '../generated/prisma/client'
 
 const requireAuth = async (
   request: import('fastify').FastifyRequest,
@@ -132,7 +133,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const pendingItems = await prisma.workitems.findMany({
-      where,
+      where: where as Prisma.workitemsWhereInput,
       include: {
         users_workitems_assigneeIdTousers: { select: { id: true, username: true, avatar: true } },
         users_workitems_createdByIdTousers: { select: { id: true, username: true, avatar: true } },
@@ -187,7 +188,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const workItems = await prisma.workitems.findMany({
-      where,
+      where: where as Prisma.workitemsWhereInput,
       include: {
         users_workitems_assigneeIdTousers: { select: { id: true, username: true, avatar: true } },
         projects: { select: { id: true, name: true } }

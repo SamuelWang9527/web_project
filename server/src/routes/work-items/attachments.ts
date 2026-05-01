@@ -1,5 +1,6 @@
 import { FastifyPluginAsync } from 'fastify'
 import { prisma } from '../../auth'
+import type { Prisma } from '../../generated/prisma/client'
 import path from 'path'
 import fs from 'fs'
 import { pipeline } from 'stream/promises'
@@ -117,7 +118,7 @@ const attachmentRoutes: FastifyPluginAsync = async (fastify) => {
 
     await prisma.workitems.update({
       where: { id },
-      data: { attachments: merged, updatedAt: new Date() }
+      data: { attachments: merged as unknown as Prisma.InputJsonValue, updatedAt: new Date() }
     })
 
     return reply.status(201).send({ success: true, data: { attachments: merged } })
@@ -154,7 +155,7 @@ const attachmentRoutes: FastifyPluginAsync = async (fastify) => {
 
     await prisma.workitems.update({
       where: { id },
-      data: { attachments: updated, updatedAt: new Date() }
+      data: { attachments: updated as unknown as Prisma.InputJsonValue, updatedAt: new Date() }
     })
 
     return reply.send({ success: true, data: { attachments: updated } })

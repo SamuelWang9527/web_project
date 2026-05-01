@@ -1,5 +1,6 @@
 import { FastifyPluginAsync } from 'fastify'
 import { prisma } from '../auth'
+import type { Prisma } from '../generated/prisma/client'
 
 const requireAuth = async (
   request: import('fastify').FastifyRequest,
@@ -251,7 +252,7 @@ const ticketRoutes: FastifyPluginAsync = async (fastify) => {
     const existing = Array.isArray(ticket.comments) ? ticket.comments as unknown[] : []
     await prisma.tickets.update({
       where: { id },
-      data: { comments: [...existing, newComment], updatedAt: new Date() }
+      data: { comments: [...existing, newComment] as unknown as Prisma.InputJsonValue, updatedAt: new Date() }
     })
 
     return reply.status(201).send({ success: true, data: { comment: newComment } })
