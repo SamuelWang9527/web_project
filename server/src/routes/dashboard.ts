@@ -1,18 +1,8 @@
 import { FastifyPluginAsync } from 'fastify'
 import { prisma } from '../lib/prisma'
+import { requireAuth } from '../lib/route-auth'
 import type { Prisma } from '../generated/prisma/client'
 import { toEnumStatus, serializeWorkItem, zhStatus, zhPriority } from '../utils/enumTransform'
-
-const requireAuth = async (
-  request: import('fastify').FastifyRequest,
-  reply: import('fastify').FastifyReply
-): Promise<boolean> => {
-  if (!request.user) {
-    await reply.status(401).send({ success: false, error: { code: 'UNAUTHORIZED', message: '未登录' } })
-    return false
-  }
-  return true
-}
 
 const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
   // 获取仪表盘统计数据

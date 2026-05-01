@@ -1,43 +1,11 @@
 import { FastifyPluginAsync } from 'fastify'
 import { prisma } from '../lib/prisma'
+import { requireAdmin, requireAuth, requireSuperAdmin } from '../lib/route-auth'
 import bcrypt from 'bcryptjs'
 import path from 'path'
 import fs from 'fs'
 import { pipeline } from 'stream/promises'
 import { randomUUID } from 'crypto'
-
-const requireAuth = async (
-  request: import('fastify').FastifyRequest,
-  reply: import('fastify').FastifyReply
-): Promise<boolean> => {
-  if (!request.user) {
-    await reply.status(401).send({ success: false, error: { code: 'UNAUTHORIZED', message: '未登录' } })
-    return false
-  }
-  return true
-}
-
-const requireAdmin = async (
-  request: import('fastify').FastifyRequest,
-  reply: import('fastify').FastifyReply
-): Promise<boolean> => {
-  if (!request.user || !['admin', 'super_admin'].includes(request.user.role)) {
-    await reply.status(403).send({ success: false, error: { code: 'FORBIDDEN', message: '权限不足' } })
-    return false
-  }
-  return true
-}
-
-const requireSuperAdmin = async (
-  request: import('fastify').FastifyRequest,
-  reply: import('fastify').FastifyReply
-): Promise<boolean> => {
-  if (!request.user || request.user.role !== 'super_admin') {
-    await reply.status(403).send({ success: false, error: { code: 'FORBIDDEN', message: '权限不足' } })
-    return false
-  }
-  return true
-}
 
 const userRoutes: FastifyPluginAsync = async (fastify) => {
   // 获取所有用户（仅管理员）

@@ -29,6 +29,8 @@ No linter or test config is present.
 
 Full-stack project management system: monorepo with `client/` (React + Vite + TypeScript) and `server/` (Fastify + Prisma + TypeScript). In production, Fastify serves the built React app from `client/dist/` via `@fastify/static`.
 
+**Monorepo root:** `package.json` at the repo root only delegates npm scripts to `client/` and `server/` via `--prefix`. Do not use Create React App from the root; the obsolete CRA-era root manifest was replaced for this layout.
+
 ## Authentication & Authorization
 
 Stateless JWT auth. On login, the server signs a JWT (`JWT_SECRET`, default 6h expiry) and returns `{ token, user }`. The client stores the token in `localStorage` and an Axios request interceptor in `client/src/utils/api.ts` injects `Authorization: Bearer <token>` on every request. The server-side Fastify auth plugin (`server/src/plugins/auth.plugin.ts`) verifies the token and populates `request.user`.

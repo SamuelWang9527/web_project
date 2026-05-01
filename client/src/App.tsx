@@ -1,5 +1,5 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 
 // 懒加载页面
@@ -46,13 +46,10 @@ function TicketRoute() {
   return <TicketList />
 }
 
-// 工单详情：传递 isAdmin prop
+// 工单详情（路由层注入 isAdmin；id 由 TicketDetail 内 useParams 读取）
 function TicketDetailRoute() {
   const { hasRole } = useAuth()
-  const { id } = useParams<{ id: string }>()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const TicketDetailComponent = TicketDetail as any
-  return <TicketDetailComponent ticketId={id} isAdmin={hasRole('admin')} />
+  return <TicketDetail isAdmin={hasRole('admin')} />
 }
 
 function AppRoutes() {
@@ -72,7 +69,7 @@ function AppRoutes() {
           <Route path="tickets/:id" element={<TicketDetailRoute />} />
           <Route path="profile" element={<Profile />} />
           <Route path="pending" element={<PendingSchedule />} />
-          <Route path="admin/tickets" element={<AdminTicketList />} />
+          <Route path="admin/tickets" element={<AdminRoute><AdminTicketList /></AdminRoute>} />
           <Route path="admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
         </Route>
 

@@ -1,5 +1,6 @@
 import { FastifyPluginAsync } from 'fastify'
 import { prisma } from '../../lib/prisma'
+import { requireAdmin, requireAuth } from '../../lib/route-auth'
 import ExcelJS from 'exceljs'
 import path from 'path'
 import fs from 'fs'
@@ -7,28 +8,6 @@ import {
   toEnumStatus, toEnumType, toEnumPriority, toEnumSource,
   serializeWorkItem, zhStatus,
 } from '../../utils/enumTransform'
-
-const requireAuth = async (
-  request: import('fastify').FastifyRequest,
-  reply: import('fastify').FastifyReply
-): Promise<boolean> => {
-  if (!request.user) {
-    await reply.status(401).send({ success: false, error: { code: 'UNAUTHORIZED', message: '未登录' } })
-    return false
-  }
-  return true
-}
-
-const requireAdmin = async (
-  request: import('fastify').FastifyRequest,
-  reply: import('fastify').FastifyReply
-): Promise<boolean> => {
-  if (!request.user || !['admin', 'super_admin'].includes(request.user.role)) {
-    await reply.status(403).send({ success: false, error: { code: 'FORBIDDEN', message: '权限不足' } })
-    return false
-  }
-  return true
-}
 
 // Field display name map for activity logging
 function getFieldDisplayName(field: string): string {

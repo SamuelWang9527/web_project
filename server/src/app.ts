@@ -84,8 +84,15 @@ export async function buildApp(): Promise<FastifyInstance> {
     decorateReply: false,
   })
 
-  app.setNotFoundHandler((_request, reply) => {
-    reply.sendFile('index.html', clientDistDir)
+  app.setNotFoundHandler((request, reply) => {
+    const pathOnly = request.url.split('?')[0] ?? request.url
+    if (pathOnly.startsWith('/api')) {
+      return reply.status(404).send({
+        success: false,
+        error: { code: 'NOT_FOUND', message: '接口不存在' },
+      })
+    }
+    return reply.sendFile('index.html', clientDistDir)
   })
 
   return app

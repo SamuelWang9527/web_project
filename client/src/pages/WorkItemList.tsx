@@ -97,10 +97,9 @@ const WorkItemList: React.FC = () => {
   // 获取管理员列表
   const fetchAdmins = async () => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const apiAny = api as any;
-      const data = await apiAny.getAdmins();
-      setAdmins(data);
+      const response = await api.getAdmins();
+      const data = (response.data as any)?.data || [];
+      setAdmins(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('获取管理员列表失败:', error);
     }

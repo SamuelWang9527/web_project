@@ -1,16 +1,6 @@
 import { FastifyPluginAsync } from 'fastify'
 import { prisma } from '../../lib/prisma'
-
-const requireAuth = async (
-  request: import('fastify').FastifyRequest,
-  reply: import('fastify').FastifyReply
-): Promise<boolean> => {
-  if (!request.user) {
-    await reply.status(401).send({ success: false, error: { code: 'UNAUTHORIZED', message: '未登录' } })
-    return false
-  }
-  return true
-}
+import { requireAuth } from '../../lib/route-auth'
 
 async function recordActivity(
   workItemId: number,
