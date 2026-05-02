@@ -279,6 +279,14 @@ client/src/components/
   dashboard/GanttSection.tsx
 ```
 
+### 删除文件
+
+| 文件 | 原因 |
+|------|------|
+| `client/src/components/MainLayoutStyles.tsx` | styled-components 移除，样式改用 Ant Design Token + 普通 CSS |
+| `client/src/utils/tagRenderers.tsx` | 逻辑迁移至 `components/common/StatusTag.tsx`，统一复用 |
+| `docs/superpowers/specs/2026-04-30-project-refactor-design.md` | 上次 CRA→Vite / Express→Fastify 重构的旧 spec，已完成并过期 |
+
 ### 重大修改文件
 
 ```
