@@ -3,6 +3,7 @@ import Fastify, { FastifyInstance } from 'fastify'
 import cors from '@fastify/cors'
 import multipart from '@fastify/multipart'
 import staticFiles from '@fastify/static'
+import compress from '@fastify/compress'
 import path from 'path'
 
 import authPlugin from './plugins/auth.plugin'
@@ -33,6 +34,13 @@ export async function buildApp(): Promise<FastifyInstance> {
     limits: {
       fileSize: parseInt(process.env.MAX_FILE_SIZE ?? '20971520'), // 20MB
     },
+  })
+
+  // Compression (gzip)
+  await app.register(compress, {
+    global: true,
+    threshold: 1024,
+    encodings: ['gzip', 'deflate'],
   })
 
   // Auth plugin（JWT 验证，注入 request.user）
