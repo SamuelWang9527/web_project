@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useDashboardStats, usePendingItems } from '@/hooks/useDashboard'
-import { useProjects } from '@/hooks/useProjects'
 import { useUsers } from '@/hooks/useUsers'
 import * as api from '@/utils/api'
 import { StatCards } from '@/components/dashboard/StatCards'
@@ -148,7 +147,7 @@ export default function Dashboard() {
         stats={stats}
         projects={projectsWithItems}
         pendingItems={filteredItems}
-        loading={statsLoading || ganttLoading}
+        loading={statsLoading}
       />
       <PendingItemsTable
         items={filteredItems}

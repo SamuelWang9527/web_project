@@ -10,7 +10,7 @@ export interface User {
   updatedAt: string
 }
 
-export type ProjectStatus = 'planning' | 'in_progress' | 'completed' | 'on_hold'
+export type ProjectStatus = '待处理' | '进行中' | '已完成' | '关闭'
 
 export interface Project {
   id: number

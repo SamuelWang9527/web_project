@@ -4,7 +4,7 @@ import type { Project } from '@/types/models'
 export const projectFixture: Project = {
   id: 1,
   name: '测试项目',
-  status: 'in_progress',
+  status: '进行中',
   creatorId: 1,
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',

@@ -137,7 +137,7 @@ export function GanttSection({ projects, workItemsByProject }: Props) {
 
   if (ganttData.length === 0) {
     return (
-      <Card title="项目进度" bodyStyle={{ padding: '16px 24px' }}>
+      <Card title="项目进度" styles={{ body: { padding: '16px 24px' } }}>
         {filterControls}
         <Empty description="暂无排期数据" />
       </Card>
@@ -224,7 +224,7 @@ export function GanttSection({ projects, workItemsByProject }: Props) {
   }
 
   return (
-    <Card title="项目进度" bodyStyle={{ padding: '16px 24px' }}>
+    <Card title="项目进度" styles={{ body: { padding: '16px 24px' } }}>
       {filterControls}
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 14, color: 'rgba(0, 0, 0, 0.45)', marginBottom: 8 }}>
@@ -233,7 +233,7 @@ export function GanttSection({ projects, workItemsByProject }: Props) {
       </div>
       <div style={{ width: '100%', overflowX: 'auto', overflowY: 'hidden', marginBottom: '24px' }}>
         <div style={{ minWidth: '800px', width: '100%', padding: '0 0 30px 0', position: 'relative' }}>
-          <Bar {...config} onReady={() => { console.log('图表已加载') }} />
+          <Bar {...config} />
         </div>
       </div>
     </Card>

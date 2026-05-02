@@ -145,7 +145,7 @@ export function PendingItemsTable({
         </div>
       }
       style={{ marginBottom: 24 }}
-      bodyStyle={{ padding: '16px 24px' }}
+      styles={{ body: { padding: '16px 24px' } }}
     >
       {/* 筛选器 */}
       <div style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 12 }}>

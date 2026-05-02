@@ -31,10 +31,10 @@ const ticketPriorityMap: Record<TicketPriority, { color: string; label: string }
 }
 
 const projectStatusMap: Record<ProjectStatus, { color: string; label: string }> = {
-  planning:    { color: 'default',    label: '规划中' },
-  in_progress: { color: 'processing', label: '进行中' },
-  completed:   { color: 'success',    label: '已完成' },
-  on_hold:     { color: 'warning',    label: '已暂停' },
+  '待处理': { color: 'default',    label: '待处理' },
+  '进行中': { color: 'processing', label: '进行中' },
+  '已完成': { color: 'success',    label: '已完成' },
+  '关闭':   { color: 'warning',    label: '已关闭' },
 }
 
 const workItemTypeColorMap: Record<string, string> = {

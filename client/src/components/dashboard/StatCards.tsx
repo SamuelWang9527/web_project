@@ -92,8 +92,8 @@ interface Props {
 }
 
 export function StatCards({ stats, projects, pendingItems, loading }: Props) {
-  const inProgressCount = projects.filter(p => p.status === 'in_progress').length
-  const completedProjectCount = projects.filter(p => p.status === 'completed').length
+  const inProgressCount = projects.filter(p => p.status === '进行中').length
+  const completedProjectCount = projects.filter(p => p.status === '已完成').length
   const completionRate =
     (stats.totalDueItems ?? 0) > 0
       ? Math.round(((stats.completedCount ?? 0) / (stats.totalDueItems ?? 1)) * 100)
