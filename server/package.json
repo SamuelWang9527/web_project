@@ -8,6 +8,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "prisma:generate": "prisma generate",
     "prisma:pull": "prisma db pull",
     "prisma:migrate": "prisma migrate dev"
@@ -37,6 +39,7 @@
     "nodemon": "^3.1.14",
     "prisma": "^7.8.0",
     "ts-node": "^10.9.2",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
   }
 }
