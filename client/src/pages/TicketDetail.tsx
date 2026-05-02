@@ -23,7 +23,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import * as api from '../utils/api';
-import { renderPriorityTag, renderStatusTag } from '../utils/tagRenderers';
+import { TicketStatusTag, TicketPriorityTag } from '@/components/common/StatusTag';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -208,11 +208,11 @@ const TicketDetail: React.FC<TicketDetailProps> = ({ ticketId, isAdmin: propIsAd
         <div className="work-item-detail-meta">
           <div className="work-item-detail-meta-item">
             <span className="work-item-detail-meta-label">状态:</span>
-            {renderStatusTag(ticket.status)}
+            <TicketStatusTag status={ticket.status} />
           </div>
           <div className="work-item-detail-meta-item">
             <span className="work-item-detail-meta-label">紧急程度:</span>
-            {renderPriorityTag(ticket.priority)}
+            <TicketPriorityTag priority={ticket.priority} />
           </div>
           <div className="work-item-detail-meta-item">
             <span className="work-item-detail-meta-label">创建者:</span>

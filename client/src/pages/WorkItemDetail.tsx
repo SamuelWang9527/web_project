@@ -43,7 +43,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { useAuth } from '../contexts/AuthContext';
 import * as api from '../utils/api';
-import { renderPriorityTag, renderStatusTag, renderTypeTag } from '../utils/tagRenderers';
+import { WorkItemStatusTag, WorkItemPriorityTag, WorkItemTypeTag } from '@/components/common/StatusTag';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -468,15 +468,15 @@ const WorkItemDetail: React.FC = () => {
         <div className="work-item-detail-meta">
           <div className="work-item-detail-meta-item">
             <span className="work-item-detail-meta-label">类型:</span>
-            {renderTypeTag(workItem.type)}
+            <WorkItemTypeTag type={workItem.type} />
           </div>
           <div className="work-item-detail-meta-item">
             <span className="work-item-detail-meta-label">状态:</span>
-            {renderStatusTag(workItem.status)}
+            <WorkItemStatusTag status={workItem.status} />
           </div>
           <div className="work-item-detail-meta-item">
             <span className="work-item-detail-meta-label">紧急程度:</span>
-            {renderPriorityTag(workItem.priority)}
+            <WorkItemPriorityTag priority={workItem.priority} />
           </div>
           <div className="work-item-detail-meta-item">
             <span className="work-item-detail-meta-label">需求来源:</span>

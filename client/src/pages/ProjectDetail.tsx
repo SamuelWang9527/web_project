@@ -27,7 +27,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { useAuth } from '../contexts/AuthContext';
 import * as api from '../utils/api';
-import { renderPriorityTag, renderStatusTag, renderTypeTag } from '../utils/tagRenderers';
+import { WorkItemStatusTag, WorkItemPriorityTag, WorkItemTypeTag, ProjectStatusTag } from '@/components/common/StatusTag';
 
 const { Option } = Select;
 const { TabPane } = Tabs;
@@ -212,21 +212,21 @@ const ProjectDetail: React.FC = () => {
       dataIndex: 'type',
       key: 'type',
       width: 100,
-      render: renderTypeTag
+      render: (val: any) => <WorkItemTypeTag type={val} />
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: renderStatusTag
+      render: (val: any) => <WorkItemStatusTag status={val} />
     },
     {
       title: '紧急程度',
       dataIndex: 'priority',
       key: 'priority',
       width: 100,
-      render: renderPriorityTag
+      render: (val: any) => <WorkItemPriorityTag priority={val} />
     },
     {
       title: '负责人',
@@ -349,7 +349,7 @@ const ProjectDetail: React.FC = () => {
       <Card title={`项目详情: ${project.name}`} style={{ marginBottom: 24 }}>
         <Descriptions bordered column={2}>
           <Descriptions.Item label="项目名称">{project.name}</Descriptions.Item>
-          <Descriptions.Item label="状态">{renderStatusTag(project.status)}</Descriptions.Item>
+          <Descriptions.Item label="状态"><ProjectStatusTag status={project.status} /></Descriptions.Item>
           <Descriptions.Item label="开始日期">
             {project.startDate ? new Date(project.startDate).toLocaleDateString() : '-'}
           </Descriptions.Item>

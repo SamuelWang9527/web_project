@@ -17,7 +17,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import * as api from '../utils/api';
-import { renderPriorityTag, renderStatusTag } from '../utils/tagRenderers';
+import { TicketStatusTag, TicketPriorityTag } from '@/components/common/StatusTag';
 
 const { Option } = Select;
 const { TabPane } = Tabs;
@@ -120,14 +120,14 @@ const TicketList: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: renderStatusTag
+      render: (val: any) => <TicketStatusTag status={val} />
     },
     {
       title: '紧急程度',
       dataIndex: 'priority',
       key: 'priority',
       width: 100,
-      render: renderPriorityTag
+      render: (val: any) => <TicketPriorityTag priority={val} />
     },
     {
       title: '负责人',

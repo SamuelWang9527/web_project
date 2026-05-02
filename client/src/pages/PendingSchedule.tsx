@@ -22,7 +22,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import * as api from '../utils/api';
-import { renderPriorityTag, renderStatusTag, renderTypeTag } from '../utils/tagRenderers';
+import { WorkItemStatusTag, WorkItemPriorityTag, WorkItemTypeTag } from '@/components/common/StatusTag';
 
 const { Option } = Select;
 
@@ -173,21 +173,21 @@ const PendingSchedule: React.FC = () => {
       dataIndex: 'type',
       key: 'type',
       width: 100,
-      render: renderTypeTag
+      render: (val: any) => <WorkItemTypeTag type={val} />
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: renderStatusTag
+      render: (val: any) => <WorkItemStatusTag status={val} />
     },
     {
       title: '紧急程度',
       dataIndex: 'priority',
       key: 'priority',
       width: 100,
-      render: renderPriorityTag
+      render: (val: any) => <WorkItemPriorityTag priority={val} />
     },
     {
       title: '创建者',

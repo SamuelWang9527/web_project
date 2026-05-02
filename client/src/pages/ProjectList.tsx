@@ -30,7 +30,7 @@ import { useAuth } from '../contexts/AuthContext';
 import * as api from '../utils/api';
 import PendingSchedule from './PendingSchedule';
 import WorkItemList from './WorkItemList';
-import { renderStatusTag } from '../utils/tagRenderers';
+import { ProjectStatusTag } from '@/components/common/StatusTag';
 
 const { Option } = Select;
 
@@ -212,7 +212,7 @@ const ProjectList: React.FC = () => {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      render: renderStatusTag
+      render: (val: any) => <ProjectStatusTag status={val} />
     },
     {
       title: '创建者',
