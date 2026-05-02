@@ -1,6 +1,7 @@
 import { FastifyPluginAsync } from 'fastify'
 import { prisma } from '../../lib/prisma'
 import { requireAdmin, requireAuth } from '../../lib/route-auth'
+import { parsePagination, paginationMeta, PaginationQuery } from '../../lib/pagination'
 import ExcelJS from 'exceljs'
 import path from 'path'
 import fs from 'fs'
@@ -61,8 +62,11 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
 
     const {
       title, projectId, type, status, priority,
-      assigneeId, source, startDate, endDate, createdById
+      assigneeId, source, startDate, endDate, createdById,
+      page: pageStr, limit: limitStr,
     } = request.query as Record<string, string | undefined>
+
+    const { page, limit, skip } = parsePagination({ page: pageStr, limit: limitStr })
 
     const where: Record<string, unknown> = {}
 
@@ -83,17 +87,26 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
       where.createdAt = { lte: new Date(endDate) }
     }
 
-    const workItems = await prisma.workitems.findMany({
-      where,
-      include: {
-        users_workitems_assigneeIdTousers: { select: { id: true, username: true, avatar: true } },
-        users_workitems_createdByIdTousers: { select: { id: true, username: true, avatar: true } },
-        projects: { select: { id: true, name: true } }
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+    const [workItems, total] = await Promise.all([
+      prisma.workitems.findMany({
+        where,
+        include: {
+          users_workitems_assigneeIdTousers: { select: { id: true, username: true, avatar: true } },
+          users_workitems_createdByIdTousers: { select: { id: true, username: true, avatar: true } },
+          projects: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.workitems.count({ where }),
+    ])
 
-    return reply.send({ success: true, data: workItems.map(item => serializeWorkItem(item as any)) })
+    return reply.send({
+      success: true,
+      data: workItems.map(item => serializeWorkItem(item as any)),
+      meta: paginationMeta(total, page, limit),
+    })
   })
 
   // 获取待排期工作项（仅管理员）
