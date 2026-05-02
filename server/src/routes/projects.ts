@@ -5,29 +5,43 @@ import ExcelJS from 'exceljs'
 import path from 'path'
 import fs from 'fs'
 import { serializeProject, serializeWorkItem } from '../utils/enumTransform'
+import { parsePagination, paginationMeta } from '../lib/pagination'
 
 const projectRoutes: FastifyPluginAsync = async (fastify) => {
   // 获取所有项目
   fastify.get('/', async (request, reply) => {
     if (!await requireAuth(request, reply)) return
 
-    const { status, search } = request.query as { status?: string; search?: string }
+    const { status, search, page: pageStr, limit: limitStr } = request.query as {
+      status?: string; search?: string; page?: string; limit?: string
+    }
 
     const where: Record<string, unknown> = {}
     if (status) where.status = status
     if (search) where.name = { contains: search }
 
-    const projects = await prisma.projects.findMany({
-      where,
-      include: {
-        users: {
-          select: { id: true, username: true, avatar: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+    const { page, limit, skip } = parsePagination({ page: pageStr, limit: limitStr })
 
-    return reply.send({ success: true, data: projects.map(p => serializeProject(p as any)) })
+    const [projects, total] = await Promise.all([
+      prisma.projects.findMany({
+        where,
+        include: {
+          users: {
+            select: { id: true, username: true, avatar: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.projects.count({ where })
+    ])
+
+    return reply.send({
+      success: true,
+      data: projects.map(p => serializeProject(p as any)),
+      meta: paginationMeta(total, page, limit)
+    })
   })
 
   // 创建新项目（仅管理员）

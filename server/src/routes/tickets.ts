@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma'
 import { requireAdmin, requireAuth } from '../lib/route-auth'
 import type { Prisma } from '../generated/prisma/client'
 import { toEnumStatus, toEnumPriority, serializeTicket } from '../utils/enumTransform'
+import { parsePagination, paginationMeta } from '../lib/pagination'
 
 const ticketRoutes: FastifyPluginAsync = async (fastify) => {
   // 获取工单列表
@@ -11,7 +12,7 @@ const ticketRoutes: FastifyPluginAsync = async (fastify) => {
 
     const {
       status, priority, search, createdById, assigneeId,
-      unassigned, startDate, endDate
+      unassigned, startDate, endDate, page: pageStr, limit: limitStr
     } = request.query as {
       status?: string
       priority?: string
@@ -21,6 +22,8 @@ const ticketRoutes: FastifyPluginAsync = async (fastify) => {
       unassigned?: string
       startDate?: string
       endDate?: string
+      page?: string
+      limit?: string
     }
 
     const where: Record<string, unknown> = {}
@@ -52,20 +55,31 @@ const ticketRoutes: FastifyPluginAsync = async (fastify) => {
       where.createdById = request.user!.id
     }
 
-    const tickets = await prisma.tickets.findMany({
-      where,
-      include: {
-        users_tickets_assigneeIdTousers: {
-          select: { id: true, username: true, avatar: true, role: true }
-        },
-        users_tickets_createdByIdTousers: {
-          select: { id: true, username: true, avatar: true, role: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+    const { page, limit, skip } = parsePagination({ page: pageStr, limit: limitStr })
 
-    return reply.send({ success: true, data: tickets.map(t => serializeTicket(t as any)) })
+    const [tickets, total] = await Promise.all([
+      prisma.tickets.findMany({
+        where,
+        include: {
+          users_tickets_assigneeIdTousers: {
+            select: { id: true, username: true, avatar: true, role: true }
+          },
+          users_tickets_createdByIdTousers: {
+            select: { id: true, username: true, avatar: true, role: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.tickets.count({ where })
+    ])
+
+    return reply.send({
+      success: true,
+      data: tickets.map(t => serializeTicket(t as any)),
+      meta: paginationMeta(total, page, limit)
+    })
   })
 
   // 创建工单

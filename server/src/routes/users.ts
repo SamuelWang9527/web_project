@@ -6,21 +6,33 @@ import path from 'path'
 import fs from 'fs'
 import { pipeline } from 'stream/promises'
 import { randomUUID } from 'crypto'
+import { parsePagination, paginationMeta } from '../lib/pagination'
 
 const userRoutes: FastifyPluginAsync = async (fastify) => {
   // 获取所有用户（仅管理员）
   fastify.get('/', async (request, reply) => {
     if (!await requireAdmin(request, reply)) return
 
-    const users = await prisma.users.findMany({
-      select: {
-        id: true, username: true, phone: true, email: true,
-        brand: true, role: true, status: true, avatar: true,
-        createdAt: true, updatedAt: true
-      }
-    })
+    const { page: pageStr, limit: limitStr } = request.query as { page?: string; limit?: string }
+    const { page, limit, skip } = parsePagination({ page: pageStr, limit: limitStr })
 
-    return reply.send({ success: true, data: users })
+    const where = {}
+
+    const [users, total] = await Promise.all([
+      prisma.users.findMany({
+        where,
+        select: {
+          id: true, username: true, phone: true, email: true,
+          brand: true, role: true, status: true, avatar: true,
+          createdAt: true, updatedAt: true
+        },
+        skip,
+        take: limit
+      }),
+      prisma.users.count({ where })
+    ])
+
+    return reply.send({ success: true, data: users, meta: paginationMeta(total, page, limit) })
   })
 
   // 获取管理员用户列表（用于分配负责人）
