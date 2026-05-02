@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
+import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 
 // 懒加载页面
 const Login = React.lazy(() => import('@/pages/Login'))
@@ -54,28 +55,30 @@ function TicketDetailRoute() {
 
 function AppRoutes() {
   return (
-    <React.Suspense fallback={<div>加载中...</div>}>
-      <Routes>
-        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+    <ErrorBoundary>
+      <React.Suspense fallback={<div>加载中...</div>}>
+        <Routes>
+          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+          <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
 
-        <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-          <Route index element={<Dashboard />} />
-          <Route path="projects" element={<ProjectList />} />
-          <Route path="projects/:id" element={<ProjectDetail />} />
-          <Route path="work-items" element={<WorkItemList />} />
-          <Route path="work-items/:id" element={<WorkItemDetail />} />
-          <Route path="tickets" element={<TicketRoute />} />
-          <Route path="tickets/:id" element={<TicketDetailRoute />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="pending" element={<PendingSchedule />} />
-          <Route path="admin/tickets" element={<AdminRoute><AdminTicketList /></AdminRoute>} />
-          <Route path="admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
-        </Route>
+          <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+            <Route index element={<Dashboard />} />
+            <Route path="projects" element={<ProjectList />} />
+            <Route path="projects/:id" element={<ProjectDetail />} />
+            <Route path="work-items" element={<WorkItemList />} />
+            <Route path="work-items/:id" element={<WorkItemDetail />} />
+            <Route path="tickets" element={<TicketRoute />} />
+            <Route path="tickets/:id" element={<TicketDetailRoute />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="pending" element={<PendingSchedule />} />
+            <Route path="admin/tickets" element={<AdminRoute><AdminTicketList /></AdminRoute>} />
+            <Route path="admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
+          </Route>
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </React.Suspense>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </React.Suspense>
+    </ErrorBoundary>
   )
 }
 
