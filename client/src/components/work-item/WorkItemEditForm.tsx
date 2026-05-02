@@ -17,8 +17,6 @@ interface Project {
 
 interface Props {
   open: boolean
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  workItem: any
   admins: User[]
   projects: Project[]
   submitting: boolean

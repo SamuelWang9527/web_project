@@ -13,16 +13,16 @@ interface Comment {
 
 interface Props {
   comments: Comment[]
-  onSubmit: (content: string) => void
+  onSubmit: (content: string) => Promise<void>
   submitting: boolean
 }
 
 export const CommentSection: React.FC<Props> = ({ comments, onSubmit, submitting }) => {
   const [value, setValue] = useState('')
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!value.trim()) return
-    onSubmit(value)
+    await onSubmit(value.trim())
     setValue('')
   }
 

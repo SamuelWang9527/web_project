@@ -82,20 +82,24 @@ export const ActivityTimeline: React.FC<Props> = ({ activities, loading }) => {
   }
 
   return (
-    <Timeline>
-      {activities.map((activity) => (
-        <Timeline.Item key={activity.id} dot={renderActivityIcon(activity.type)}>
-          <div style={{ marginBottom: 8 }}>
-            <span style={{ marginRight: 8 }}>
-              <strong>{activity.User?.username}</strong>
-            </span>
-            <span style={{ color: '#8c8c8c' }}>
-              {new Date(activity.createdAt).toLocaleString()}
-            </span>
-          </div>
-          <div>{formatActivityDescription(activity)}</div>
-        </Timeline.Item>
-      ))}
-    </Timeline>
+    <Timeline
+      items={activities.map((activity) => ({
+        key: activity.id,
+        dot: renderActivityIcon(activity.type),
+        children: (
+          <>
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ marginRight: 8 }}>
+                <strong>{activity.User?.username}</strong>
+              </span>
+              <span style={{ color: '#8c8c8c' }}>
+                {new Date(activity.createdAt).toLocaleString()}
+              </span>
+            </div>
+            <div>{formatActivityDescription(activity)}</div>
+          </>
+        ),
+      }))}
+    />
   )
 }

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Card, Button, Space, Form, Popconfirm, Typography, message } from 'antd'
 import { EditOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 
 import { useAuth } from '@/contexts/AuthContext'
@@ -15,7 +15,8 @@ import {
 } from '@/hooks/useWorkItemMutations'
 import { useAdmins } from '@/hooks/useUsers'
 import { useProjects } from '@/hooks/useProjects'
-import { getWorkItemActivities, updateWorkItem as apiUpdateWorkItem } from '@/utils/api'
+import { useWorkItemActivities } from '@/hooks/useWorkItemActivities'
+import { updateWorkItem as apiUpdateWorkItem } from '@/utils/api'
 import { PageSkeleton } from '@/components/common/PageSkeleton'
 
 import { WorkItemInfoPanel } from '@/components/work-item/WorkItemInfoPanel'
@@ -56,11 +57,7 @@ const WorkItemDetail: React.FC = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const workItem: any = (workItemData as any)?.data ?? workItemData
 
-  const { data: activitiesData, isLoading: loadingActivities } = useQuery({
-    queryKey: ['work-items', workItemId, 'activities'],
-    queryFn: () => getWorkItemActivities(workItemId!).then((res) => res.data),
-    enabled: workItemId !== undefined,
-  })
+  const { data: activitiesData, isLoading: loadingActivities } = useWorkItemActivities(workItemId)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const activities: any[] = (activitiesData as any)?.data ?? activitiesData ?? []
 
@@ -73,13 +70,14 @@ const WorkItemDetail: React.FC = () => {
   const projects: any[] = (projectsData as any)?.data ?? projectsData ?? []
 
   // ——— Mutations ———
+  const queryClient        = useQueryClient()
   const updateMutation     = useUpdateWorkItem(workItemId ?? 0)
   const uploadMutation     = useUploadAttachment(workItemId ?? 0)
   const deleteMutation     = useDeleteAttachment(workItemId ?? 0)
   const commentMutation    = useAddComment(workItemId ?? 0)
 
   // ——— Permissions ———
-  const canEdit = hasRole('admin') || (workItem && user && workItem.createdById === user.id)
+  const canEdit = hasRole('admin') || (workItem && user && workItem.creatorId === user.id)
 
   // ——— Handlers ———
   const handleDelete = async () => {
@@ -132,6 +130,8 @@ const WorkItemDetail: React.FC = () => {
       })
 
       await apiUpdateWorkItem(workItemId!, formData as any)
+      await queryClient.invalidateQueries({ queryKey: ['work-items', workItemId] })
+      await queryClient.invalidateQueries({ queryKey: ['work-items'] })
       message.success('工作项更新成功')
       setEditOpen(false)
       updateMutation.reset()
@@ -154,11 +154,9 @@ const WorkItemDetail: React.FC = () => {
     })
   }
 
-  const handleAddComment = (content: string) => {
-    commentMutation.mutate(content, {
-      onSuccess: () => message.success('评论添加成功'),
-      onError: (err: any) => message.error('添加评论失败: ' + (err.message ?? '未知错误')),
-    })
+  const handleAddComment = async (content: string): Promise<void> => {
+    await commentMutation.mutateAsync(content)
+    message.success('评论添加成功')
   }
 
   // ——— Loading / empty states ———
@@ -253,7 +251,6 @@ const WorkItemDetail: React.FC = () => {
       {/* Edit modal */}
       <WorkItemEditForm
         open={editOpen}
-        workItem={workItem}
         admins={admins}
         projects={projects}
         submitting={updateMutation.isPending}

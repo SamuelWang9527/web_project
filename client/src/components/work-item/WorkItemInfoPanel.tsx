@@ -2,12 +2,22 @@ import React from 'react'
 import { Descriptions } from 'antd'
 import { Link } from 'react-router-dom'
 import { WorkItemStatusTag, WorkItemPriorityTag, WorkItemTypeTag } from '@/components/common/StatusTag'
+import type { WorkItem } from '@/types/models'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type WorkItemRaw = any
+interface WorkItemWithRelations extends WorkItem {
+  type?: string | null
+  source?: string | null
+  estimatedHours?: number | null
+  actualHours?: number | null
+  scheduledStartDate?: string | null
+  scheduledEndDate?: string | null
+  expectedCompletionDate?: string | null
+  completionDate?: string | null
+  Project?: { id: number; name: string } | null
+}
 
 interface Props {
-  workItem: WorkItemRaw
+  workItem: WorkItemWithRelations
 }
 
 export const WorkItemInfoPanel: React.FC<Props> = ({ workItem }) => {
@@ -20,7 +30,7 @@ export const WorkItemInfoPanel: React.FC<Props> = ({ workItem }) => {
         <WorkItemPriorityTag priority={workItem.priority} />
       </Descriptions.Item>
       <Descriptions.Item label="类型">
-        <WorkItemTypeTag type={workItem.type} />
+        <WorkItemTypeTag type={workItem.type ?? ''} />
       </Descriptions.Item>
       <Descriptions.Item label="需求来源">
         {workItem.source || '-'}
