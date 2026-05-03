@@ -39,7 +39,7 @@ export default function Login() {
         data-login-left=""
         style={{
           flex: 1,
-          background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)',
+          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
