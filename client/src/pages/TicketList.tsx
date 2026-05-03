@@ -169,7 +169,7 @@ const TicketList: React.FC = () => {
       <h1>工单管理</h1>
 
       {/* 筛选器 */}
-      <Card style={{ marginBottom: 16 }}>
+      <Card style={{ borderRadius: 14, border: '1px solid #ede9fe', boxShadow: '0 2px 12px rgba(99,102,241,0.07)', marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
           <div style={{ display: 'flex', gap: 16 }}>
             <Input
@@ -215,8 +215,8 @@ const TicketList: React.FC = () => {
       </Card>
 
       {/* 工单列表 */}
-      <Card>
-        <Tabs activeKey={activeTab} onChange={handleTabChange}>
+      <Card style={{ borderRadius: 14, border: '1px solid #ede9fe', boxShadow: '0 2px 12px rgba(99,102,241,0.07)' }}>
+        <Tabs activeKey={activeTab} onChange={handleTabChange} tabBarStyle={{ margin: '0 0 16px', borderBottom: '1px solid #ede9fe' }}>
           <TabPane tab="全部工单" key="all">
             <Spin spinning={loading}>
               <Table

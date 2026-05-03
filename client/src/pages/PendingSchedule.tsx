@@ -46,11 +46,12 @@ const PendingSchedule: React.FC = () => {
   const fetchPendingItems = async () => {
     try {
       setLoading(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const apiAny = api as any;
-      const data = await apiAny.getPendingScheduleItems();
-      setPendingItems(data);
-      setFilteredItems(data);
+      const response = await apiAny.getPendingScheduleItems();
+      const rawData = (response.data as any)?.data || response.data || [];
+      const items = Array.isArray(rawData) ? rawData : [];
+      setPendingItems(items);
+      setFilteredItems(items);
     } catch (error) {
       console.error('获取待排期工作项失败:', error);
       message.error('获取待排期工作项失败');
@@ -162,7 +163,7 @@ const PendingSchedule: React.FC = () => {
     },
     {
       title: '项目',
-      dataIndex: 'Project',
+      dataIndex: 'project',
       key: 'project',
       render: (project: any) => project ? (
         <Link to={`/projects/${project.id}`}>{project.name}</Link>
@@ -240,7 +241,7 @@ const PendingSchedule: React.FC = () => {
   return (
     <div>
       {/* 筛选器 */}
-      <Card style={{ marginBottom: 16 }}>
+      <Card style={{ borderRadius: 14, border: '1px solid #ede9fe', boxShadow: '0 2px 12px rgba(99,102,241,0.07)', marginBottom: 16 }}>
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -297,7 +298,7 @@ const PendingSchedule: React.FC = () => {
         </div>
       </Card>
 
-      <Card>
+      <Card style={{ borderRadius: 14, border: '1px solid #ede9fe', boxShadow: '0 2px 12px rgba(99,102,241,0.07)' }}>
         <Spin spinning={loading}>
           <Table
             columns={columns}
