@@ -170,7 +170,7 @@ const WorkItemDetail: React.FC = () => {
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/projects?tab=workItems')}>
           返回工作项列表
         </Button>
-        <Card>
+        <Card style={{ borderRadius: 14, border: '1px solid #ede9fe', boxShadow: '0 2px 12px rgba(99,102,241,0.07)', marginBottom: 16 }}>
           <div style={{ textAlign: 'center', padding: '50px' }}>工作项不存在或已被删除</div>
         </Card>
       </div>
@@ -207,7 +207,7 @@ const WorkItemDetail: React.FC = () => {
         {/* LEFT: main content */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Title + description */}
-          <Card>
+          <Card style={{ borderRadius: 14, border: '1px solid #ede9fe', boxShadow: '0 2px 12px rgba(99,102,241,0.07)', marginBottom: 16 }}>
             <Title level={3} style={{ marginBottom: 8 }}>{workItem.title}</Title>
             <div style={{ whiteSpace: 'pre-wrap', color: workItem.description ? undefined : '#999' }}>
               {workItem.description || '无描述'}
@@ -215,7 +215,7 @@ const WorkItemDetail: React.FC = () => {
           </Card>
 
           {/* Attachments */}
-          <Card title="附件" style={{ marginTop: 16 }}>
+          <Card title="附件" style={{ borderRadius: 14, border: '1px solid #ede9fe', boxShadow: '0 2px 12px rgba(99,102,241,0.07)', marginBottom: 16, marginTop: 16 }}>
             <AttachmentSection
               attachments={attachments}
               onUpload={handleUpload}
@@ -226,7 +226,7 @@ const WorkItemDetail: React.FC = () => {
           </Card>
 
           {/* Comments */}
-          <Card title="评论" style={{ marginTop: 16 }}>
+          <Card title="评论" style={{ borderRadius: 14, border: '1px solid #ede9fe', boxShadow: '0 2px 12px rgba(99,102,241,0.07)', marginBottom: 16, marginTop: 16 }}>
             <CommentSection
               comments={comments}
               onSubmit={handleAddComment}
@@ -235,14 +235,14 @@ const WorkItemDetail: React.FC = () => {
           </Card>
 
           {/* Activity timeline */}
-          <Card title="活动记录" style={{ marginTop: 16 }}>
+          <Card title="活动记录" style={{ borderRadius: 14, border: '1px solid #ede9fe', boxShadow: '0 2px 12px rgba(99,102,241,0.07)', marginBottom: 16, marginTop: 16 }}>
             <ActivityTimeline activities={activities} loading={loadingActivities} />
           </Card>
         </div>
 
         {/* RIGHT: info panel */}
         <div style={{ width: 280, flexShrink: 0 }}>
-          <Card>
+          <Card style={{ borderRadius: 14, border: '1px solid #ede9fe', boxShadow: '0 2px 12px rgba(99,102,241,0.07)', marginBottom: 16 }}>
             <WorkItemInfoPanel workItem={workItem} />
           </Card>
         </div>
