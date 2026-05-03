@@ -27,25 +27,21 @@ ReactDOM.createRoot(root).render(
         locale={zhCN}
         theme={{
           token: {
-            colorPrimary: '#4F6EF7',
+            colorPrimary: '#6366f1',
             borderRadius: 8,
             fontFamily: "'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif",
             colorBgContainer: '#ffffff',
-            colorBgLayout: '#f1f5f9',
+            colorBgLayout: '#f3f0ff',
+            colorText: '#1e1b4b',
+            colorTextSecondary: '#6b7280',
+            colorBorder: '#ede9fe',
           },
           components: {
-            Layout: {
-              siderBg: '#0f172a',
-              headerBg: '#ffffff',
-            },
-            Menu: {
-              darkItemBg: '#0f172a',
-              darkSubMenuItemBg: '#1e293b',
-              darkItemSelectedBg: '#1e3a8a',
-            },
-            Card: { borderRadius: 12 },
-            Table: { borderRadius: 8 },
-            Button: { borderRadius: 6 },
+            Layout: { headerBg: '#ffffff', bodyBg: '#f3f0ff' },
+            Card: { borderRadius: 14 },
+            Table: { borderRadius: 8, headerBg: '#fdf4ff' },
+            Button: { borderRadius: 7 },
+            Menu: { horizontalItemSelectedColor: '#6366f1' },
           },
         }}
       >
