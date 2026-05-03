@@ -1,7 +1,10 @@
-import { Input, Select, Button } from 'antd'
+import { Input, Select, Button, DatePicker } from 'antd'
 import { SearchOutlined, FilterOutlined, PlusOutlined, DownloadOutlined } from '@ant-design/icons'
+import dayjs from 'dayjs'
+import type { Dayjs } from 'dayjs'
 
 const { Option } = Select
+const { RangePicker } = DatePicker
 
 export interface WorkItemFilterState {
   title: string
@@ -135,6 +138,43 @@ export function WorkItemFilters({
             </Option>
           ))}
         </Select>
+        <Select
+          placeholder="需求来源"
+          style={{ width: 150 }}
+          value={filters.source || undefined}
+          onChange={value => onChange('source', value)}
+          allowClear
+        >
+          <Option value="内部需求">内部需求</Option>
+          <Option value="品牌需求">品牌需求</Option>
+        </Select>
+        <Select
+          placeholder="创建人"
+          style={{ width: 150 }}
+          value={filters.createdById || undefined}
+          onChange={value => onChange('createdById', value)}
+          allowClear
+          showSearch
+          optionFilterProp="children"
+        >
+          {admins.map((admin: any) => (
+            <Option key={admin.id} value={admin.id}>
+              {admin.username} ({admin.role === 'super_admin' ? '超级管理员' : '管理员'})
+            </Option>
+          ))}
+        </Select>
+        <RangePicker
+          placeholder={['创建开始日期', '创建结束日期']}
+          style={{ width: 260 }}
+          value={[
+            filters.startDate ? dayjs(filters.startDate) : null,
+            filters.endDate ? dayjs(filters.endDate) : null,
+          ] as [Dayjs | null, Dayjs | null]}
+          onChange={dates => {
+            onChange('startDate', dates?.[0] ? dates[0].format('YYYY-MM-DD') : '')
+            onChange('endDate', dates?.[1] ? dates[1].format('YYYY-MM-DD') : '')
+          }}
+        />
         <Button icon={<FilterOutlined />} onClick={onReset}>
           重置筛选
         </Button>

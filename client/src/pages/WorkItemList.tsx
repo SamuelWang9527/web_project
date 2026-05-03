@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Card, Modal, Form, Input, Select, DatePicker, message } from 'antd'
 import dayjs from 'dayjs'
 import { useAuth } from '../contexts/AuthContext'
@@ -19,9 +19,9 @@ const WorkItemList: React.FC = () => {
   const [form] = Form.useForm()
   const { hasRole } = useAuth()
 
-  const isAdmin = () => hasRole('admin')
+  const isAdmin = hasRole('admin')
 
-  const fetchWorkItems = async () => {
+  const fetchWorkItems = useCallback(async () => {
     try {
       setLoading(true)
       const params = Object.fromEntries(
@@ -36,7 +36,7 @@ const WorkItemList: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters])
 
   useEffect(() => {
     api.getProjects().then(r => {
@@ -50,7 +50,7 @@ const WorkItemList: React.FC = () => {
     }).catch(() => {})
   }, [])
 
-  useEffect(() => { fetchWorkItems() }, [filters]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchWorkItems() }, [fetchWorkItems])
 
   const handleFilterChange = (name: string, value: unknown) => {
     setFilters(prev => ({ ...prev, [name]: value }))
@@ -263,14 +263,14 @@ const WorkItemList: React.FC = () => {
             <Form.Item name="expectedCompletionDate" label="期望完成日期" style={{ flex: 1 }}>
               <DatePicker style={{ width: '100%' }} />
             </Form.Item>
-            {isAdmin() && (
+            {isAdmin && (
               <Form.Item name="estimatedHours" label="预估工时(小时)" style={{ flex: 1 }}>
                 <Input type="number" min={0} step={0.5} />
               </Form.Item>
             )}
           </div>
 
-          {isAdmin() && (
+          {isAdmin && (
             <div style={{ display: 'flex', gap: 16 }}>
               <Form.Item name="scheduledStartDate" label="排期开始日期" style={{ flex: 1 }}>
                 <DatePicker style={{ width: '100%' }} />

@@ -21,7 +21,7 @@ interface Props {
 export function WorkItemTable({ workItems, loading, onEdit, onDelete, onUpload }: Props) {
   const { user, hasRole } = useAuth()
   const navigate = useNavigate()
-  const isAdmin = () => hasRole('admin')
+  const isAdmin = hasRole('admin')
 
   const columns: any[] = [
     {
@@ -127,7 +127,7 @@ export function WorkItemTable({ workItems, loading, onEdit, onDelete, onUpload }
       width: 150,
       fixed: 'right',
       render: (_: any, record: any) => {
-        const canEdit = isAdmin() || (record.creator && record.creator.id === user?.id)
+        const canEdit = isAdmin || (record.creator && record.creator.id === user?.id)
         return (
           <Space size="small">
             <Button
