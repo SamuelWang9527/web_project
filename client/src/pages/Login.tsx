@@ -1,203 +1,109 @@
-import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, Typography, message, Spin, Alert } from 'antd';
-import { MailOutlined, LockOutlined } from '@ant-design/icons';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
+import { useState } from 'react'
+import { Form, Input, Button, message, Typography } from 'antd'
+import { MailOutlined, LockOutlined } from '@ant-design/icons'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '@/contexts/AuthContext'
 
-const { Title, Text } = Typography;
+const { Title, Text } = Typography
 
-interface ApiStatus {
-  checking?: boolean;
-  available?: boolean;
-  url?: string;
-  error?: string;
-  isNetwork?: boolean;
-}
+export default function Login() {
+  const [loading, setLoading] = useState(false)
+  const { login } = useAuth()
+  const navigate = useNavigate()
 
-const Login: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [apiStatus, setApiStatus] = useState<ApiStatus | null>(null);
-  const { login } = useAuth();
-  const navigate = useNavigate();
-
-  // 在组件加载时检查API状态
-  useEffect(() => {
-    const checkApiStatus = async () => {
-      try {
-        setApiStatus({ checking: true });
-        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000';
-        const pingUrl = `${apiUrl}/api/auth/ping`;
-
-        console.log('正在检查API状态:', pingUrl);
-
-        const response = await axios.get(pingUrl, {
-          timeout: 5000,
-          withCredentials: true
-        });
-
-        if (response.status === 200) {
-          setApiStatus({ available: true, url: pingUrl });
-          console.log('API状态检查成功');
-        } else {
-          setApiStatus({ available: false, error: `服务器返回: ${response.status}` });
-          console.log('API状态检查失败:', response.status);
-        }
-      } catch (error: any) {
-        console.error('API状态检查错误:', error);
-        setApiStatus({
-          available: false,
-          error: error.message,
-          isNetwork: error.message.includes('Network Error')
-        });
-      }
-    };
-
-    checkApiStatus();
-  }, []);
-
-  // 处理登录表单提交
   const handleSubmit = async (values: { email: string; password: string }) => {
-    const { email, password } = values;
-
-    setLoading(true);
-    setErrorMessage('');
-    console.log('尝试登录:', email, '环境API地址:', process.env.REACT_APP_API_URL);
-
+    setLoading(true)
     try {
-      await login(email, password);
-      message.success('登录成功');
-      navigate('/');
+      await login(values.email, values.password)
+      message.success('登录成功')
+      navigate('/')
     } catch (error: any) {
-      console.error('登录失败:', error);
-
-      if (error && error.response && error.response.status === 401) {
-        setErrorMessage('邮箱或密码错误');
-        message.error('邮箱或密码错误');
-      } else if (error && error.status === 401) {
-        setErrorMessage('邮箱或密码错误');
-        message.error('邮箱或密码错误');
-      } else if (error && error.message && error.message.includes('pending')) {
-        setErrorMessage('您的账户正在审核中，请稍后再试');
-        message.error('您的账户正在审核中，请稍后再试');
-      } else if (error && error.message && error.message.includes('disabled')) {
-        setErrorMessage('您的账户已被禁用，请联系管理员');
-        message.error('您的账户已被禁用，请联系管理员');
-      } else if (error && error.message && error.message.includes('network')) {
-        setErrorMessage('网络错误，请检查您的网络连接或服务器状态');
-        message.error('网络错误，请检查您的网络连接或服务器状态');
-      } else if (error && error.message && error.message.includes('Network Error')) {
-        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000';
-        setErrorMessage(`网络连接失败: 无法连接到API服务器 (${apiUrl}/api)`);
-        message.error('无法连接到服务器，请检查网络设置或联系管理员');
+      if (error?.response?.status === 401 || error?.status === 401) {
+        message.error('邮箱或密码错误')
+      } else if (error?.message?.includes('pending')) {
+        message.error('您的账户正在审核中，请稍后再试')
+      } else if (error?.message?.includes('disabled')) {
+        message.error('您的账户已被禁用，请联系管理员')
       } else {
-        const errorMsg = error && error.message ? error.message : '未知错误';
-        setErrorMessage('登录失败: ' + errorMsg);
-        message.error('登录失败: ' + errorMsg);
+        message.error('登录失败，请稍后再试')
       }
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
-
-  // 添加API状态指示器
-  const renderApiStatus = () => {
-    if (!apiStatus) return null;
-
-    if (apiStatus.checking) {
-      return <Alert message="正在检查服务器连接..." type="info" showIcon style={{ marginBottom: 16 }} />;
-    }
-
-    if (apiStatus.available) {
-      return <Alert message={`服务器连接正常: ${apiStatus.url}`} type="success" showIcon style={{ marginBottom: 16 }} />;
-    }
-
-    return (
-      <Alert
-        message="服务器连接问题"
-        description={
-          apiStatus.isNetwork
-            ? `无法连接到API服务器 (${process.env.REACT_APP_API_URL}/api)。请检查:
-              1. 您的网络连接是否正常
-              2. 服务器是否在运行
-              3. 是否存在SSL证书问题
-              4. 域名是否正确解析`
-            : `API服务器错误: ${apiStatus.error}`
-        }
-        type="error"
-        showIcon
-        style={{ marginBottom: 16 }}
-      />
-    );
-  };
+  }
 
   return (
-    <div className="login-container">
-      <div className="login-form">
-        <div className="login-form-title">
-          <Title level={2}>项目管理系统</Title>
-          <Text type="secondary">登录您的账户</Text>
-        </div>
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Left panel — brand */}
+      <div
+        data-login-left=""
+        style={{
+          flex: 1,
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#fff',
+          padding: 48,
+        }}
+      >
+        <Title level={2} style={{ color: '#fff', margin: 0 }}>PipeCode</Title>
+        <Text style={{ color: '#94a3b8', marginTop: 12, fontSize: 16, textAlign: 'center' }}>
+          高效的项目与工作项管理平台
+        </Text>
+      </div>
 
-        {renderApiStatus()}
-
-        <Spin spinning={loading}>
-          <Form
-            name="login_form"
-            initialValues={{ remember: true }}
-            onFinish={handleSubmit}
-            size="large"
-          >
+      {/* Right panel — form */}
+      <div
+        data-login-right=""
+        style={{
+          width: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#ffffff',
+          padding: 48,
+        }}
+      >
+        <div style={{ width: '100%', maxWidth: 360 }}>
+          <Title level={3} style={{ marginBottom: 32 }}>登录</Title>
+          <Form layout="vertical" onFinish={handleSubmit} size="large">
             <Form.Item
               name="email"
               rules={[
                 { required: true, message: '请输入邮箱' },
-                { type: 'email', message: '请输入有效的邮箱地址' }
+                { type: 'email', message: '请输入有效的邮箱地址' },
               ]}
             >
-              <Input
-                prefix={<MailOutlined />}
-                placeholder="邮箱"
-              />
+              <Input prefix={<MailOutlined />} placeholder="邮箱" />
             </Form.Item>
-
             <Form.Item
               name="password"
               rules={[{ required: true, message: '请输入密码' }]}
             >
-              <Input.Password
-                prefix={<LockOutlined />}
-                placeholder="密码"
-              />
+              <Input.Password prefix={<LockOutlined />} placeholder="密码" />
             </Form.Item>
-
-            {errorMessage && (
-              <div className="login-error-message" style={{ color: 'red', marginBottom: '15px' }}>
-                {errorMessage}
-              </div>
-            )}
-
             <Form.Item>
-              <Button
-                type="primary"
-                htmlType="submit"
-                className="login-form-button"
-                loading={loading}
-                disabled={apiStatus !== null && !apiStatus.available && !loading}
-              >
+              <Button type="primary" htmlType="submit" loading={loading} block>
                 登录
               </Button>
             </Form.Item>
+            <div style={{ textAlign: 'center' }}>
+              <Text type="secondary">还没有账户？</Text>{' '}
+              <Link to="/register">立即注册</Link>
+            </div>
           </Form>
-        </Spin>
-
-        <div className="register-link">
-          <Text>还没有账户？</Text> <Link to="/register">立即注册</Link>
         </div>
       </div>
-    </div>
-  );
-};
 
-export default Login;
+      {/* Mobile fallback: hide left panel below 768px */}
+      <style>{`
+        @media (max-width: 768px) {
+          [data-login-left] { display: none !important; }
+          [data-login-right] { width: 100% !important; }
+        }
+      `}</style>
+    </div>
+  )
+}
