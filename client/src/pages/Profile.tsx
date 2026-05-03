@@ -11,7 +11,6 @@ import {
   Spin
 } from 'antd';
 import {
-  UserOutlined,
   UploadOutlined,
   LockOutlined,
   LoadingOutlined,
@@ -19,74 +18,8 @@ import {
 } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
 import * as api from '../utils/api';
-import styled from 'styled-components';
 
 const { Option } = Select;
-
-const ProfileCard = styled(Card)`
-  max-width: 600px;
-  margin: 0 auto;
-`;
-
-const GlobalStyle = styled.div`
-  .ant-upload.ant-upload-select-picture-card {
-    border-radius: 50% !important;
-    width: 128px !important;
-    height: 128px !important;
-    margin: 0 !important;
-    border: 1px dashed #d9d9d9 !important;
-    background-color: #fafafa !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    overflow: hidden !important;
-  }
-`;
-
-const AvatarWrapper = styled.div`
-  display: flex;
-  justify-content: center;
-  margin-bottom: 24px;
-
-  .avatar-container {
-    width: 128px;
-    height: 128px;
-    border-radius: 50%;
-    overflow: hidden;
-    position: relative;
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .avatar-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      opacity: 0;
-      transition: opacity 0.3s;
-      color: white;
-
-      &:hover {
-        opacity: 1;
-      }
-
-      .anticon {
-        font-size: 24px;
-        margin-bottom: 8px;
-      }
-    }
-  }
-`;
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
@@ -95,6 +28,7 @@ const Profile: React.FC = () => {
   const [profileForm] = Form.useForm();
   const [passwordForm] = Form.useForm();
   const [imageUrl, setImageUrl] = useState<string>(user?.avatar || '');
+  const [overlayHovered, setOverlayHovered] = useState(false);
 
   // 初始化表单数据
   useEffect(() => {
@@ -206,15 +140,47 @@ const Profile: React.FC = () => {
 
   return (
     <div className="profile-container">
-      <GlobalStyle />
-      <ProfileCard title="个人资料">
-        <AvatarWrapper>
-          <div className="avatar-container">
+      <Card title="个人资料" style={{ maxWidth: 600, margin: '0 auto' }}>
+        {/* Avatar wrapper */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+          <div
+            style={{
+              width: 128,
+              height: 128,
+              borderRadius: '50%',
+              overflow: 'hidden',
+              position: 'relative',
+            }}
+          >
             {imageUrl ? (
               <>
-                <img src={imageUrl} alt="avatar" />
-                <div className="avatar-overlay" onClick={() => document.getElementById('avatar-upload')?.click()}>
-                  <UploadOutlined />
+                <img
+                  src={imageUrl}
+                  alt="avatar"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    opacity: overlayHovered ? 1 : 0,
+                    transition: 'opacity 0.3s',
+                    color: 'white',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={() => setOverlayHovered(true)}
+                  onMouseLeave={() => setOverlayHovered(false)}
+                  onClick={() => document.getElementById('avatar-upload')?.click()}
+                >
+                  <UploadOutlined style={{ fontSize: 24, marginBottom: 8 }} />
                   <span>更换头像</span>
                 </div>
               </>
@@ -250,7 +216,7 @@ const Profile: React.FC = () => {
               <button style={{ display: 'none' }} type="button">上传</button>
             </Upload>
           </div>
-        </AvatarWrapper>
+        </div>
 
         <Form
           form={profileForm}
@@ -308,7 +274,7 @@ const Profile: React.FC = () => {
             </Button>
           </Form.Item>
         </Form>
-      </ProfileCard>
+      </Card>
 
       {/* 修改密码模态框 */}
       <Modal

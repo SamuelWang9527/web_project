@@ -4,78 +4,80 @@ import {
   ClockCircleOutlined,
   ProjectOutlined,
 } from '@ant-design/icons'
-import styled from 'styled-components'
 import type { Project } from '@/types/models'
 
-const StatisticCard = styled.div`
-  height: 140px;
-  border-radius: 8px;
-  background: linear-gradient(to bottom right, #ffffff, #fafafa);
-  border: 1px solid #f0f0f0;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+const cardStyle: React.CSSProperties = {
+  height: 140,
+  borderRadius: 8,
+  background: 'linear-gradient(to bottom right, #ffffff, #fafafa)',
+  border: '1px solid #f0f0f0',
+  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  padding: 20,
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'space-between',
+}
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  }
+const cardHoverStyle: React.CSSProperties = {
+  ...cardStyle,
+  transform: 'translateY(-2px)',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+}
 
-  .statistic-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-  }
+const headerStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginBottom: 12,
+}
 
-  .statistic-title {
-    color: rgba(0, 0, 0, 0.65);
-    font-size: 15px;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+const titleStyle: React.CSSProperties = {
+  color: 'rgba(0, 0, 0, 0.65)',
+  fontSize: 15,
+  fontWeight: 500,
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+}
 
-  .statistic-icon {
-    font-size: 20px;
-    padding: 6px;
-    border-radius: 6px;
-  }
+const iconStyle: React.CSSProperties = {
+  fontSize: 20,
+  padding: 6,
+  borderRadius: 6,
+}
 
-  .statistic-value {
-    font-size: 32px;
-    line-height: 1.2;
-    font-weight: 600;
-    color: #262626;
-    margin: 8px 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-  }
+const valueStyle: React.CSSProperties = {
+  fontSize: 32,
+  lineHeight: 1.2,
+  fontWeight: 600,
+  color: '#262626',
+  margin: '8px 0',
+  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial",
+}
 
-  .statistic-description {
-    color: rgba(0, 0, 0, 0.45);
-    font-size: 13px;
-    display: flex;
-    gap: 12px;
+const descriptionStyle: React.CSSProperties = {
+  color: 'rgba(0, 0, 0, 0.45)',
+  fontSize: 13,
+  display: 'flex',
+  gap: 12,
+}
 
-    span {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
+const descSpanStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 4,
+}
 
-    .dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      display: inline-block;
-      margin-right: 4px;
-    }
-  }
-`
+const dotStyle: React.CSSProperties = {
+  width: 6,
+  height: 6,
+  borderRadius: '50%',
+  display: 'inline-block',
+  marginRight: 4,
+}
+
+import React from 'react'
 
 interface DashboardStats {
   completedCount?: number
@@ -89,6 +91,19 @@ interface Props {
   projects: Project[]
   pendingItems: any[]
   loading: boolean
+}
+
+function StatCard({ children, style }: { children?: React.ReactNode; style?: React.CSSProperties }) {
+  const [hovered, setHovered] = React.useState(false)
+  return (
+    <div
+      style={{ ...(hovered ? cardHoverStyle : cardStyle), ...style }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {children}
+    </div>
+  )
 }
 
 export function StatCards({ stats, projects, pendingItems, loading }: Props) {
@@ -106,7 +121,7 @@ export function StatCards({ stats, projects, pendingItems, loading }: Props) {
       <Row gutter={16} style={{ marginBottom: 24 }}>
         {[0, 1, 2].map(i => (
           <Col key={i} span={8}>
-            <StatisticCard style={{ background: '#f5f5f5' }} />
+            <StatCard style={{ background: '#f5f5f5' }} />
           </Col>
         ))}
       </Row>
@@ -116,76 +131,73 @@ export function StatCards({ stats, projects, pendingItems, loading }: Props) {
   return (
     <Row gutter={16} style={{ marginBottom: 24 }}>
       <Col span={8}>
-        <StatisticCard>
-          <div className="statistic-header">
-            <div className="statistic-title">
+        <StatCard>
+          <div style={headerStyle}>
+            <div style={titleStyle}>
               <ProjectOutlined
-                className="statistic-icon"
-                style={{ backgroundColor: '#e6f7ff', color: '#1890ff' }}
+                style={{ ...iconStyle, backgroundColor: '#e6f7ff', color: '#1890ff' }}
               />
               <span>总项目数</span>
             </div>
           </div>
-          <div className="statistic-value">{projects.length}</div>
-          <div className="statistic-description">
-            <span>
-              <i className="dot" style={{ backgroundColor: '#1890ff' }}></i>
+          <div style={valueStyle}>{projects.length}</div>
+          <div style={descriptionStyle}>
+            <span style={descSpanStyle}>
+              <i style={{ ...dotStyle, backgroundColor: '#1890ff' }}></i>
               进行中：{inProgressCount}
             </span>
-            <span>
-              <i className="dot" style={{ backgroundColor: '#52c41a' }}></i>
+            <span style={descSpanStyle}>
+              <i style={{ ...dotStyle, backgroundColor: '#52c41a' }}></i>
               已完成：{completedProjectCount}
             </span>
           </div>
-        </StatisticCard>
+        </StatCard>
       </Col>
       <Col span={8}>
-        <StatisticCard>
-          <div className="statistic-header">
-            <div className="statistic-title">
+        <StatCard>
+          <div style={headerStyle}>
+            <div style={titleStyle}>
               <CheckCircleOutlined
-                className="statistic-icon"
-                style={{ backgroundColor: '#f6ffed', color: '#52c41a' }}
+                style={{ ...iconStyle, backgroundColor: '#f6ffed', color: '#52c41a' }}
               />
               <span>工作项完成率</span>
             </div>
           </div>
-          <div className="statistic-value">{completionRate}%</div>
-          <div className="statistic-description">
-            <span>
-              <i className="dot" style={{ backgroundColor: '#52c41a' }}></i>
+          <div style={valueStyle}>{completionRate}%</div>
+          <div style={descriptionStyle}>
+            <span style={descSpanStyle}>
+              <i style={{ ...dotStyle, backgroundColor: '#52c41a' }}></i>
               已完成：{stats.completedCount ?? 0}
             </span>
-            <span>
-              <i className="dot" style={{ backgroundColor: '#8c8c8c' }}></i>
+            <span style={descSpanStyle}>
+              <i style={{ ...dotStyle, backgroundColor: '#8c8c8c' }}></i>
               应完成：{stats.totalDueItems ?? 0}
             </span>
           </div>
-        </StatisticCard>
+        </StatCard>
       </Col>
       <Col span={8}>
-        <StatisticCard>
-          <div className="statistic-header">
-            <div className="statistic-title">
+        <StatCard>
+          <div style={headerStyle}>
+            <div style={titleStyle}>
               <ClockCircleOutlined
-                className="statistic-icon"
-                style={{ backgroundColor: '#fff7e6', color: '#fa8c16' }}
+                style={{ ...iconStyle, backgroundColor: '#fff7e6', color: '#fa8c16' }}
               />
               <span>待处理工作项</span>
             </div>
           </div>
-          <div className="statistic-value">{stats.pendingCount ?? 0}</div>
-          <div className="statistic-description">
-            <span>
-              <i className="dot" style={{ backgroundColor: '#f5222d' }}></i>
+          <div style={valueStyle}>{stats.pendingCount ?? 0}</div>
+          <div style={descriptionStyle}>
+            <span style={descSpanStyle}>
+              <i style={{ ...dotStyle, backgroundColor: '#f5222d' }}></i>
               紧急：{urgentCount}
             </span>
-            <span>
-              <i className="dot" style={{ backgroundColor: '#fa8c16' }}></i>
+            <span style={descSpanStyle}>
+              <i style={{ ...dotStyle, backgroundColor: '#fa8c16' }}></i>
               高优先级：{highPriorityCount}
             </span>
           </div>
-        </StatisticCard>
+        </StatCard>
       </Col>
     </Row>
   )
