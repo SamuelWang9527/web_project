@@ -178,7 +178,10 @@ const WorkItemList: React.FC = () => {
         />
       </Card>
 
-      <Card>
+      <Card
+        style={{ borderRadius: 14, border: '1px solid #ede9fe', boxShadow: '0 2px 12px rgba(99,102,241,0.07)' }}
+        styles={{ body: { padding: 0 } }}
+      >
         <WorkItemTable
           workItems={workItems}
           loading={loading}

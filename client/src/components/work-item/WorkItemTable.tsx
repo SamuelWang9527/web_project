@@ -1,3 +1,4 @@
+import React from 'react'
 import { Table, Button, Space, Popconfirm } from 'antd'
 import { Link, useNavigate } from 'react-router-dom'
 import {
@@ -9,6 +10,30 @@ import {
 import dayjs from 'dayjs'
 import { useAuth } from '@/contexts/AuthContext'
 import { WorkItemStatusTag, WorkItemPriorityTag, WorkItemTypeTag } from '@/components/common/StatusTag'
+
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg, #6366f1, #8b5cf6)',
+  'linear-gradient(135deg, #f59e0b, #fbbf24)',
+  'linear-gradient(135deg, #10b981, #34d399)',
+  'linear-gradient(135deg, #ef4444, #f87171)',
+  'linear-gradient(135deg, #0ea5e9, #38bdf8)',
+  'linear-gradient(135deg, #ec4899, #f472b6)',
+]
+
+const UserCell: React.FC<{ user: any; fallback?: string }> = ({ user, fallback = '-' }) =>
+  user ? (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{
+        width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+        background: AVATAR_GRADIENTS[user.id % AVATAR_GRADIENTS.length],
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 11, fontWeight: 700, color: '#fff',
+      }}>
+        {user.username.charAt(0).toUpperCase()}
+      </div>
+      <span style={{ fontSize: 13 }}>{user.username}</span>
+    </div>
+  ) : <span style={{ color: '#9ca3af' }}>{fallback}</span>
 
 interface Props {
   workItems: any[]
@@ -77,14 +102,14 @@ export function WorkItemTable({ workItems, loading, onEdit, onDelete, onUpload }
       dataIndex: 'creator',
       key: 'creator',
       width: 120,
-      render: (creator: any) => creator ? creator.username : '-',
+      render: (creator: any) => <UserCell user={creator} />,
     },
     {
       title: '负责人',
       dataIndex: 'assignee',
       key: 'assignee',
       width: 120,
-      render: (assignee: any) => assignee ? assignee.username : '未分配',
+      render: (assignee: any) => <UserCell user={assignee} fallback="未分配" />,
     },
     {
       title: '需求来源',
