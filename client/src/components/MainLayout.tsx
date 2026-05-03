@@ -21,7 +21,7 @@ interface NavItemProps {
 }
 
 const NavItem: React.FC<NavItemProps> = ({ to, active, children }) => {
-  const [hovered, setHovered] = React.useState(false)
+  const [hovered, setHovered] = useState(false)
   return (
     <Link
       to={to}
