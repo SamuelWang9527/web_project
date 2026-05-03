@@ -7,66 +7,35 @@ import {
 import type { Project } from '@/types/models'
 
 const cardStyle: React.CSSProperties = {
-  height: 140,
-  borderRadius: 8,
-  background: 'linear-gradient(to bottom right, #ffffff, #fafafa)',
-  border: '1px solid #f0f0f0',
-  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  padding: 20,
+  background: '#fff',
+  borderRadius: 14,
+  border: '1px solid #ede9fe',
+  boxShadow: '0 2px 12px rgba(99,102,241,0.07)',
+  padding: '20px 22px',
   display: 'flex',
   flexDirection: 'column',
-  justifyContent: 'space-between',
+  gap: 10,
+  transition: 'box-shadow .2s, transform .2s',
 }
 
 const cardHoverStyle: React.CSSProperties = {
   ...cardStyle,
+  boxShadow: '0 6px 24px rgba(99,102,241,0.13)',
   transform: 'translateY(-2px)',
-  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
-}
-
-const headerStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  marginBottom: 12,
-}
-
-const titleStyle: React.CSSProperties = {
-  color: 'rgba(0, 0, 0, 0.65)',
-  fontSize: 15,
-  fontWeight: 500,
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-}
-
-const iconStyle: React.CSSProperties = {
-  fontSize: 20,
-  padding: 6,
-  borderRadius: 6,
 }
 
 const valueStyle: React.CSSProperties = {
-  fontSize: 32,
-  lineHeight: 1.2,
-  fontWeight: 600,
-  color: '#262626',
-  margin: '8px 0',
-  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial",
+  fontSize: 30,
+  fontWeight: 700,
+  color: '#1e1b4b',
+  lineHeight: 1,
 }
 
 const descriptionStyle: React.CSSProperties = {
-  color: 'rgba(0, 0, 0, 0.45)',
-  fontSize: 13,
+  fontSize: 12,
+  color: '#9ca3af',
   display: 'flex',
   gap: 12,
-}
-
-const descSpanStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 4,
 }
 
 const dotStyle: React.CSSProperties = {
@@ -74,7 +43,7 @@ const dotStyle: React.CSSProperties = {
   height: 6,
   borderRadius: '50%',
   display: 'inline-block',
-  marginRight: 4,
+  flexShrink: 0,
 }
 
 import React from 'react'
@@ -113,8 +82,8 @@ export function StatCards({ stats, projects, pendingItems, loading }: Props) {
     (stats.totalDueItems ?? 0) > 0
       ? Math.round(((stats.completedCount ?? 0) / (stats.totalDueItems ?? 1)) * 100)
       : 0
-  const urgentCount = pendingItems.filter(i => i.priority === 'urgent').length
-  const highPriorityCount = pendingItems.filter(i => i.priority === 'high').length
+  const urgentCount = pendingItems.filter(i => i.priority === '紧急').length
+  const highPriorityCount = pendingItems.filter(i => i.priority === '高').length
 
   if (loading) {
     return (
@@ -130,70 +99,69 @@ export function StatCards({ stats, projects, pendingItems, loading }: Props) {
 
   return (
     <Row gutter={16} style={{ marginBottom: 24 }}>
+      {/* Card 1: 总项目数 */}
       <Col span={8}>
         <StatCard>
-          <div style={headerStyle}>
-            <div style={titleStyle}>
-              <ProjectOutlined
-                style={{ ...iconStyle, backgroundColor: '#e6f7ff', color: '#1890ff' }}
-              />
-              <span>总项目数</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 9, background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ProjectOutlined style={{ color: '#6366f1', fontSize: 16 }} />
             </div>
+            <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>总项目数</span>
           </div>
           <div style={valueStyle}>{projects.length}</div>
           <div style={descriptionStyle}>
-            <span style={descSpanStyle}>
-              <i style={{ ...dotStyle, backgroundColor: '#1890ff' }}></i>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <i style={{ ...dotStyle, background: '#6366f1' }} />
               进行中：{inProgressCount}
             </span>
-            <span style={descSpanStyle}>
-              <i style={{ ...dotStyle, backgroundColor: '#52c41a' }}></i>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <i style={{ ...dotStyle, background: '#10b981' }} />
               已完成：{completedProjectCount}
             </span>
           </div>
         </StatCard>
       </Col>
+
+      {/* Card 2: 工作项完成率 */}
       <Col span={8}>
         <StatCard>
-          <div style={headerStyle}>
-            <div style={titleStyle}>
-              <CheckCircleOutlined
-                style={{ ...iconStyle, backgroundColor: '#f6ffed', color: '#52c41a' }}
-              />
-              <span>工作项完成率</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 9, background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CheckCircleOutlined style={{ color: '#059669', fontSize: 16 }} />
             </div>
+            <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>工作项完成率</span>
           </div>
           <div style={valueStyle}>{completionRate}%</div>
           <div style={descriptionStyle}>
-            <span style={descSpanStyle}>
-              <i style={{ ...dotStyle, backgroundColor: '#52c41a' }}></i>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <i style={{ ...dotStyle, background: '#10b981' }} />
               已完成：{stats.completedCount ?? 0}
             </span>
-            <span style={descSpanStyle}>
-              <i style={{ ...dotStyle, backgroundColor: '#8c8c8c' }}></i>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <i style={{ ...dotStyle, background: '#e5e7eb' }} />
               应完成：{stats.totalDueItems ?? 0}
             </span>
           </div>
         </StatCard>
       </Col>
+
+      {/* Card 3: 待处理工作项 */}
       <Col span={8}>
         <StatCard>
-          <div style={headerStyle}>
-            <div style={titleStyle}>
-              <ClockCircleOutlined
-                style={{ ...iconStyle, backgroundColor: '#fff7e6', color: '#fa8c16' }}
-              />
-              <span>待处理工作项</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 9, background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ClockCircleOutlined style={{ color: '#d97706', fontSize: 16 }} />
             </div>
+            <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>待处理工作项</span>
           </div>
           <div style={valueStyle}>{stats.pendingCount ?? 0}</div>
           <div style={descriptionStyle}>
-            <span style={descSpanStyle}>
-              <i style={{ ...dotStyle, backgroundColor: '#f5222d' }}></i>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <i style={{ ...dotStyle, background: '#ef4444' }} />
               紧急：{urgentCount}
             </span>
-            <span style={descSpanStyle}>
-              <i style={{ ...dotStyle, backgroundColor: '#fa8c16' }}></i>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <i style={{ ...dotStyle, background: '#f59e0b' }} />
               高优先级：{highPriorityCount}
             </span>
           </div>
