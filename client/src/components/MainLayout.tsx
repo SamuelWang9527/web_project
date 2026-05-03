@@ -16,10 +16,8 @@ import {
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import * as api from '../utils/api';
-// 导入样式组件
-import { RotatingIcon, StyledHeader } from './MainLayoutStyles';
 
-const { Content, Footer } = Layout;
+const { Header, Content, Footer } = Layout;
 const { Option } = Select;
 
 const MainLayout: React.FC = () => {
@@ -125,17 +123,30 @@ const MainLayout: React.FC = () => {
 
   return (
     <Layout className="layout" style={{ minHeight: '100vh' }}>
-      <StyledHeader>
-        <div className="logo-section">
-          <RotatingIcon>
-            <RadarChartOutlined className="icon" />
-          </RotatingIcon>
+      <Header style={{
+        background: '#fff',
+        padding: '0 24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottom: '1px solid #e8e8e8',
+        height: 64,
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          fontSize: 20,
+          fontWeight: 'bold',
+          color: '#0f172a',
+          marginRight: 48,
+        }}>
+          <RadarChartOutlined style={{ fontSize: 28, marginRight: 12, color: '#4F6EF7' }} />
           项目管理平台
         </div>
         <Menu
           mode="horizontal"
           selectedKeys={[getSelectedKey()]}
-          theme="dark"
+          style={{ flex: 1, border: 'none' }}
         >
           <Menu.Item key="dashboard" icon={<DashboardOutlined />}>
             <Link to="/">概览</Link>
@@ -159,12 +170,19 @@ const MainLayout: React.FC = () => {
             </Menu.Item>
           )}
         </Menu>
-        <div className="user-section">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
           <Badge count={0}>
-            <BellOutlined className="notification-icon" />
+            <BellOutlined style={{ fontSize: 20, color: '#595959', cursor: 'pointer' }} />
           </Badge>
           <Dropdown overlay={userMenu} trigger={['click']}>
-            <span className="user-dropdown">
+            <span style={{
+              cursor: 'pointer',
+              color: '#0f172a',
+              fontSize: 16,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}>
               <Avatar
                 src={user?.avatar}
                 icon={<UserOutlined />}
@@ -175,7 +193,7 @@ const MainLayout: React.FC = () => {
             </span>
           </Dropdown>
         </div>
-      </StyledHeader>
+      </Header>
       <Content style={{ padding: '24px', background: '#f0f2f5' }}>
         <Outlet />
       </Content>
