@@ -95,12 +95,20 @@ export function serializeWorkItem(item: Record<string, unknown>): Record<string,
     priority: item.priority != null ? (PRIORITY_TO_ZH[item.priority as string] ?? item.priority) : item.priority,
     source: item.source != null ? (SOURCE_TO_ZH[item.source as string] ?? item.source) : item.source,
   }
+  // Map Prisma relation names → client-friendly names
+  if (result.users_workitems_assigneeIdTousers !== undefined) {
+    result.assignee = result.users_workitems_assigneeIdTousers
+    delete result.users_workitems_assigneeIdTousers
+  }
+  if (result.users_workitems_createdByIdTousers !== undefined) {
+    result.creator = result.users_workitems_createdByIdTousers
+    delete result.users_workitems_createdByIdTousers
+  }
   // Serialize nested project status
   if (result.projects && typeof result.projects === 'object' && !Array.isArray(result.projects)) {
     const proj = result.projects as Record<string, unknown>
-    if (proj.status != null) {
-      result.projects = { ...proj, status: STATUS_TO_ZH[proj.status as string] ?? proj.status }
-    }
+    result.project = { ...proj, status: proj.status != null ? (STATUS_TO_ZH[proj.status as string] ?? proj.status) : proj.status }
+    delete result.projects
   }
   return result
 }

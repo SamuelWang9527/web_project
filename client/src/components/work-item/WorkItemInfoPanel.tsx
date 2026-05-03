@@ -13,7 +13,6 @@ interface WorkItemWithRelations extends WorkItem {
   scheduledEndDate?: string | null
   expectedCompletionDate?: string | null
   completionDate?: string | null
-  Project?: { id: number; name: string } | null
 }
 
 interface Props {
@@ -39,8 +38,8 @@ export const WorkItemInfoPanel: React.FC<Props> = ({ workItem }) => {
         {workItem.assignee ? workItem.assignee.username : '未分配'}
       </Descriptions.Item>
       <Descriptions.Item label="所属项目">
-        {workItem.Project ? (
-          <Link to={`/projects/${workItem.Project.id}`}>{workItem.Project.name}</Link>
+        {workItem.project ? (
+          <Link to={`/projects/${workItem.project.id}`}>{workItem.project.name}</Link>
         ) : '-'}
       </Descriptions.Item>
       <Descriptions.Item label="创建者">
