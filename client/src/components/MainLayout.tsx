@@ -3,13 +3,13 @@ import { Layout, Dropdown, Avatar, Modal, Button, Form, Input, Select, message }
 import {
   UserOutlined,
   LogoutOutlined,
-  BellOutlined,
   QuestionCircleOutlined,
   DownOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import * as api from '../utils/api';
+import NotificationDropdown from './NotificationDropdown';
 
 const { Header, Content, Footer } = Layout;
 const { Option } = Select;
@@ -203,14 +203,7 @@ const MainLayout: React.FC = () => {
 
         {/* Right actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginLeft: 'auto' }}>
-          <div style={{
-            width: 34, height: 34, borderRadius: 8,
-            background: '#faf5ff', border: '1px solid #ede9fe',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer',
-          }}>
-            <BellOutlined style={{ color: '#6366f1', fontSize: 15 }} />
-          </div>
+          <NotificationDropdown />
           <Dropdown menu={{ items: userMenuItems }} trigger={['click']}>
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
