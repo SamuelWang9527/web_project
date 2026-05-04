@@ -4,8 +4,8 @@ import type { Ticket } from '@/types/models'
 export const ticketFixture: Ticket = {
   id: 1,
   title: '测试工单',
-  status: 'open',
-  priority: 'medium',
+  status: '待处理',
+  priority: '中',
   creatorId: 1,
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',

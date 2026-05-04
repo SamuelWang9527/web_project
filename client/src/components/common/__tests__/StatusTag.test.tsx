@@ -4,26 +4,26 @@ import { describe, it, expect } from 'vitest'
 import { WorkItemStatusTag, WorkItemPriorityTag, TicketStatusTag } from '../StatusTag'
 
 describe('WorkItemStatusTag', () => {
-  it('renders "待处理" for todo status', () => {
-    render(<WorkItemStatusTag status="todo" />)
+  it('renders "待处理"', () => {
+    render(<WorkItemStatusTag status="待处理" />)
     expect(screen.getByText('待处理')).toBeInTheDocument()
   })
-  it('renders "已完成" for done status', () => {
-    render(<WorkItemStatusTag status="done" />)
+  it('renders "已完成"', () => {
+    render(<WorkItemStatusTag status="已完成" />)
     expect(screen.getByText('已完成')).toBeInTheDocument()
   })
 })
 
 describe('WorkItemPriorityTag', () => {
-  it('renders "紧急" for urgent priority', () => {
-    render(<WorkItemPriorityTag priority="urgent" />)
+  it('renders "紧急"', () => {
+    render(<WorkItemPriorityTag priority="紧急" />)
     expect(screen.getByText('紧急')).toBeInTheDocument()
   })
 })
 
 describe('TicketStatusTag', () => {
-  it('renders "已解决" for resolved status', () => {
-    render(<TicketStatusTag status="resolved" />)
+  it('renders "已解决" for 已完成 status', () => {
+    render(<TicketStatusTag status="已完成" />)
     expect(screen.getByText('已解决')).toBeInTheDocument()
   })
 })
