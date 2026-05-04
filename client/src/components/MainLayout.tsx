@@ -216,6 +216,7 @@ const MainLayout: React.FC = () => {
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '4px 12px 4px 4px', borderRadius: 100,
               border: '1px solid #ede9fe', background: '#faf5ff', cursor: 'pointer',
+              lineHeight: 'normal',
             }}>
               <Avatar
                 size={28}
