@@ -9,6 +9,7 @@ import {
   toEnumStatus, toEnumType, toEnumPriority, toEnumSource,
   serializeWorkItem, zhStatus,
 } from '../../utils/enumTransform'
+import { createNotification } from '../../utils/createNotification'
 
 // Field display name map for activity logging
 function getFieldDisplayName(field: string): string {
@@ -507,6 +508,17 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
         ? prisma.workitem_activities.createMany({ data: activityLogs as any })
         : Promise.resolve(),
     ])
+
+    // Notify new assignee if assignee changed and it is not a self-assignment
+    if (assigneeChanging && body.assigneeId && Number(body.assigneeId) !== request.user!.id) {
+      await createNotification({
+        userId: Number(body.assigneeId),
+        type: 'assigned',
+        title: '工作项指派',
+        body: `${request.user!.username} 将「${workItem.title}」指派给你`,
+        linkPath: `/work-items/${id}`,
+      })
+    }
 
     return reply.send({ success: true, data: serializeWorkItem(updated as any) })
   })
