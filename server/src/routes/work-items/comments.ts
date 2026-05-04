@@ -1,6 +1,7 @@
 import { FastifyPluginAsync } from 'fastify'
 import { prisma } from '../../lib/prisma'
 import { requireAuth } from '../../lib/route-auth'
+import { createNotification } from '../../utils/createNotification'
 
 async function recordActivity(
   workItemId: number,
@@ -67,6 +68,23 @@ const commentRoutes: FastifyPluginAsync = async (fastify) => {
 
     // Record comment activity
     await recordActivity(id, request.user!.id, 'comment', null, null, content, content)
+
+    // Notify work item creator + current assignee (deduplicated, exclude the commenter)
+    const recipientIds = [...new Set(
+      [workItem.createdById, workItem.assigneeId].filter((uid): uid is number => uid !== null)
+    )].filter(uid => uid !== request.user!.id)
+
+    await Promise.all(
+      recipientIds.map(uid =>
+        createNotification({
+          userId: uid,
+          type: 'commented',
+          title: '工作项评论',
+          body: `${request.user!.username} 评论了「${workItem.title}」`,
+          linkPath: `/work-items/${id}`,
+        })
+      )
+    )
 
     return reply.status(201).send({ success: true, data: { comment: newComment } })
   })
