@@ -159,4 +159,21 @@ export const deleteUser = (userId: number) =>
 export const getPendingScheduleItems = (params?: Record<string, unknown>) =>
   instance.get<ApiSuccess<WorkItem[]>>('/work-items/pending-schedule', { params })
 
+// ——— Notifications ———
+export interface NotificationItem {
+  id: number
+  type: 'assigned' | 'commented'
+  title: string
+  body: string
+  linkPath: string
+  isRead: boolean
+  createdAt: string
+}
+
+export const getNotifications = () =>
+  instance.get<{ data: NotificationItem[]; unreadCount: number }>('/notifications')
+
+export const markAllNotificationsRead = () =>
+  instance.patch<{ success: boolean }>('/notifications/read-all')
+
 export default instance
