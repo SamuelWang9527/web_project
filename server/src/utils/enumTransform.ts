@@ -119,6 +119,11 @@ export function serializeProject(item: Record<string, unknown>): Record<string, 
     ...item,
     status: item.status != null ? (STATUS_TO_ZH[item.status as string] ?? item.status) : item.status,
   }
+  // Map Prisma relation name → client-friendly name
+  if (result.users !== undefined) {
+    result.creator = result.users
+    delete result.users
+  }
   if (Array.isArray(result.workitems)) {
     result.workitems = (result.workitems as Record<string, unknown>[]).map(serializeWorkItem)
   }
