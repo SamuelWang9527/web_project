@@ -15,6 +15,7 @@ import attachmentRoutes from './routes/work-items/attachments'
 import commentRoutes from './routes/work-items/comments'
 import ticketRoutes from './routes/tickets'
 import dashboardRoutes from './routes/dashboard'
+import notificationRoutes from './routes/notifications'
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -55,6 +56,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(commentRoutes, { prefix: '/api/work-items' })
   await app.register(ticketRoutes, { prefix: '/api/tickets' })
   await app.register(dashboardRoutes, { prefix: '/api/dashboard' })
+  await app.register(notificationRoutes, { prefix: '/api/notifications' })
 
   // 全局错误处理
   app.setErrorHandler((error: Error & { statusCode?: number; code?: string }, _request, reply) => {
