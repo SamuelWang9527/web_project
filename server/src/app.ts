@@ -74,6 +74,12 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(staticFiles, {
     root: uploadsDir,
     prefix: '/uploads/',
+    setHeaders(res, filePath) {
+      const ext = filePath.split('.').pop()?.toLowerCase()
+      if (ext !== 'jpg' && ext !== 'jpeg' && ext !== 'png' && ext !== 'gif' && ext !== 'webp') {
+        res.setHeader('Content-Disposition', 'attachment')
+      }
+    },
   })
 
   // 静态文件服务 - exports

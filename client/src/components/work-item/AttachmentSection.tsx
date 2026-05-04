@@ -57,7 +57,7 @@ export const AttachmentSection: React.FC<Props> = ({
   }
 
   const handleDownload = (attachment: Attachment) => {
-    downloadFile(attachment.path)
+    downloadFile(attachment.path, attachment.originalName)
   }
 
   const handleUploadClick = () => {

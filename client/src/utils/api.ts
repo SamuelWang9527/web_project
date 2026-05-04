@@ -84,13 +84,14 @@ export const uploadAttachment = (workItemId: number, file: File) => {
   })
 }
 
-export const downloadFile = (fileUrl: string) => {
-  const token = localStorage.getItem('token')
+export const downloadFile = (fileUrl: string, filename?: string) => {
   const url = fileUrl.startsWith('http') ? fileUrl : `${window.location.origin}${fileUrl}`
   const link = document.createElement('a')
-  link.href = token ? `${url}?token=${token}` : url
-  link.download = ''
+  link.href = url
+  link.download = filename || ''
+  document.body.appendChild(link)
   link.click()
+  document.body.removeChild(link)
 }
 
 export const exportWorkItems = (params?: Record<string, unknown>) =>
