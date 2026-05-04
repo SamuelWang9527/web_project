@@ -1,26 +1,52 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Dropdown, Avatar, Badge, Modal, Button, Form, Input, Select, message } from 'antd';
+import { Layout, Dropdown, Avatar, Modal, Button, Form, Input, Select, message } from 'antd';
 import {
-  DashboardOutlined,
-  ProjectOutlined,
   UserOutlined,
   LogoutOutlined,
   BellOutlined,
   QuestionCircleOutlined,
   DownOutlined,
-  RadarChartOutlined,
-  FileOutlined,
-  FileTextOutlined,
-  TeamOutlined
 } from '@ant-design/icons';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import * as api from '../utils/api';
-// 导入样式组件
-import { RotatingIcon, StyledHeader } from './MainLayoutStyles';
 
-const { Content, Footer } = Layout;
+const { Header, Content, Footer } = Layout;
 const { Option } = Select;
+
+interface NavItemProps {
+  to: string
+  active: boolean
+  children: React.ReactNode
+}
+
+const NavItem: React.FC<NavItemProps> = ({ to, active, children }) => {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <Link
+      to={to}
+      style={{
+        height: '100%',
+        padding: '0 18px',
+        display: 'flex',
+        alignItems: 'center',
+        fontSize: 14,
+        fontWeight: active ? 600 : 500,
+        color: (active || hovered) ? '#6366f1' : '#6b7280',
+        position: 'relative',
+        textDecoration: 'none',
+        whiteSpace: 'nowrap',
+        transition: 'color .15s',
+        borderBottom: active ? '2px solid #6366f1' : '2px solid transparent',
+        boxSizing: 'border-box',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {children}
+    </Link>
+  )
+}
 
 const MainLayout: React.FC = () => {
   const { user, logout, hasRole } = useAuth();
@@ -34,10 +60,9 @@ const MainLayout: React.FC = () => {
   // 获取管理员列表
   const fetchAdmins = async () => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const apiAny = api as any;
-      const data = await apiAny.getAdmins();
-      setAdmins(data);
+      const response = await api.getAdmins();
+      const data = (response.data as any)?.data || [];
+      setAdmins(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('获取管理员列表失败:', error);
       message.error('获取管理员列表失败');
@@ -86,21 +111,34 @@ const MainLayout: React.FC = () => {
 
   const isAdmin = () => hasRole('admin');
 
-  // 用户下拉菜单
-  const userMenu = (
-    <Menu>
-      <Menu.Item key="profile" icon={<UserOutlined />}>
-        <Link to="/profile">个人资料</Link>
-      </Menu.Item>
-      <Menu.Item key="ticket" icon={<QuestionCircleOutlined />} onClick={showTicketModal}>
-        提交工单
-      </Menu.Item>
-      <Menu.Divider />
-      <Menu.Item key="logout" icon={<LogoutOutlined />} onClick={handleLogout}>
-        退出登录
-      </Menu.Item>
-    </Menu>
-  );
+  const navItems = [
+    { key: 'dashboard', to: '/', label: '概览' },
+    { key: 'projects', to: '/projects', label: '项目管理' },
+    ...(!isAdmin() ? [{ key: 'tickets', to: '/tickets', label: '我的工单' }] : []),
+    ...(isAdmin() ? [{ key: 'admin-tickets', to: '/admin/tickets', label: '工单管理' }] : []),
+    ...(isAdmin() ? [{ key: 'admin-users', to: '/admin/users', label: '用户管理' }] : []),
+  ]
+
+  const userMenuItems = [
+    {
+      key: 'profile',
+      icon: <UserOutlined />,
+      label: <Link to="/profile">个人资料</Link>,
+    },
+    {
+      key: 'ticket',
+      icon: <QuestionCircleOutlined />,
+      label: '提交工单',
+      onClick: showTicketModal,
+    },
+    { type: 'divider' as const },
+    {
+      key: 'logout',
+      icon: <LogoutOutlined />,
+      label: '退出登录',
+      onClick: handleLogout,
+    },
+  ]
 
   // 获取当前选中的菜单项
   const getSelectedKey = () => {
@@ -126,62 +164,87 @@ const MainLayout: React.FC = () => {
 
   return (
     <Layout className="layout" style={{ minHeight: '100vh' }}>
-      <StyledHeader>
-        <div className="logo-section">
-          <RotatingIcon>
-            <RadarChartOutlined className="icon" />
-          </RotatingIcon>
+      <Header style={{
+        background: '#fff',
+        padding: '0 28px',
+        display: 'flex',
+        alignItems: 'center',
+        borderBottom: '1px solid #ede9fe',
+        boxShadow: '0 1px 4px rgba(99,102,241,0.06)',
+        height: 60,
+        lineHeight: '60px',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+      }}>
+        {/* Logo */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          fontSize: 17, fontWeight: 700, color: '#1e1b4b',
+          marginRight: 36, flexShrink: 0,
+        }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#fff', fontSize: 16, fontWeight: 800,
+          }}>P</div>
           项目管理平台
         </div>
-        <Menu
-          mode="horizontal"
-          selectedKeys={[getSelectedKey()]}
-          theme="dark"
-        >
-          <Menu.Item key="dashboard" icon={<DashboardOutlined />}>
-            <Link to="/">概览</Link>
-          </Menu.Item>
-          <Menu.Item key="projects" icon={<ProjectOutlined />}>
-            <Link to="/projects">项目管理</Link>
-          </Menu.Item>
-          {(user?.role !== 'admin' && user?.role !== 'super_admin') && (
-            <Menu.Item key="tickets" icon={<FileOutlined />}>
-              <Link to="/tickets">我的工单</Link>
-            </Menu.Item>
-          )}
-          {(user?.role === 'admin' || user?.role === 'super_admin') && (
-            <Menu.Item key="admin-tickets" icon={<FileTextOutlined />}>
-              <Link to="/admin/tickets">工单管理</Link>
-            </Menu.Item>
-          )}
-          {(user?.role === 'admin' || user?.role === 'super_admin') && (
-            <Menu.Item key="admin-users" icon={<TeamOutlined />}>
-              <Link to="/admin/users">用户管理</Link>
-            </Menu.Item>
-          )}
-        </Menu>
-        <div className="user-section">
-          <Badge count={0}>
-            <BellOutlined className="notification-icon" />
-          </Badge>
-          <Dropdown overlay={userMenu} trigger={['click']}>
-            <span className="user-dropdown">
+
+        {/* Nav */}
+        <div style={{ display: 'flex', flex: 1, height: '100%' }}>
+          {navItems.map(item => (
+            <NavItem key={item.key} to={item.to} active={getSelectedKey() === item.key}>
+              {item.label}
+            </NavItem>
+          ))}
+        </div>
+
+        {/* Right actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginLeft: 'auto' }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 8,
+            background: '#faf5ff', border: '1px solid #ede9fe',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+          }}>
+            <BellOutlined style={{ color: '#6366f1', fontSize: 15 }} />
+          </div>
+          <Dropdown menu={{ items: userMenuItems }} trigger={['click']}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '4px 12px 4px 4px', borderRadius: 100,
+              border: '1px solid #ede9fe', background: '#faf5ff', cursor: 'pointer',
+              lineHeight: 'normal',
+            }}>
               <Avatar
-                src={user?.avatar}
-                icon={<UserOutlined />}
-                style={{ backgroundColor: '#87d068' }}
-              />
-              <span>{user?.username}</span>
-              <DownOutlined />
-            </span>
+                size={28}
+                style={{ background: 'linear-gradient(135deg, #6366f1, #a78bfa)', flexShrink: 0, fontSize: 12, fontWeight: 700 }}
+              >
+                {user?.username?.charAt(0).toUpperCase()}
+              </Avatar>
+              <span style={{ fontSize: 13, fontWeight: 500, color: '#1e1b4b' }}>{user?.username}</span>
+              <DownOutlined style={{ fontSize: 10, color: '#9ca3af' }} />
+            </div>
           </Dropdown>
         </div>
-      </StyledHeader>
-      <Content style={{ padding: '24px', background: '#f0f2f5' }}>
+      </Header>
+      <Content style={{ padding: '24px', background: '#f3f0ff' }}>
         <Outlet />
       </Content>
-      <Footer style={{ textAlign: 'center', background: '#fff', padding: '12px' }}>
-        项目管理平台 ©2024 Created by Samuel | <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">皖ICP备2025079298号</a>
+      <Footer style={{
+        textAlign: 'center',
+        background: '#fff',
+        borderTop: '1px solid #ede9fe',
+        padding: '10px 24px',
+        fontSize: 12,
+        color: '#9ca3af',
+      }}>
+        项目管理平台 ©2024 Created by Samuel |{' '}
+        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" style={{ color: '#6366f1' }}>
+          皖ICP备2025079298号
+        </a>
       </Footer>
 
       {/* 提交工单弹窗 */}

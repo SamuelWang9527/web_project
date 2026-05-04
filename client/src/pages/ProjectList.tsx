@@ -30,9 +30,19 @@ import { useAuth } from '../contexts/AuthContext';
 import * as api from '../utils/api';
 import PendingSchedule from './PendingSchedule';
 import WorkItemList from './WorkItemList';
-import { renderStatusTag } from '../utils/tagRenderers';
+import { ProjectStatusTag } from '@/components/common/StatusTag';
 
 const { Option } = Select;
+
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg, #6366f1, #8b5cf6)',
+  'linear-gradient(135deg, #f59e0b, #fbbf24)',
+  'linear-gradient(135deg, #10b981, #34d399)',
+  'linear-gradient(135deg, #ef4444, #f87171)',
+  'linear-gradient(135deg, #0ea5e9, #38bdf8)',
+  'linear-gradient(135deg, #ec4899, #f472b6)',
+]
+const getAvatarGradient = (id: number) => AVATAR_GRADIENTS[id % AVATAR_GRADIENTS.length]
 
 const ProjectList: React.FC = () => {
   const [projects, setProjects] = useState<any[]>([]);
@@ -212,13 +222,25 @@ const ProjectList: React.FC = () => {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      render: renderStatusTag
+      render: (val: any) => <ProjectStatusTag status={val} />
     },
     {
       title: '创建者',
       dataIndex: 'creator',
       key: 'creator',
-      render: (creator: any) => creator ? creator.username : '-'
+      render: (creator: any) => creator ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+            background: getAvatarGradient(creator.id),
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, fontWeight: 700, color: '#fff',
+          }}>
+            {creator.username.charAt(0).toUpperCase()}
+          </div>
+          <span style={{ fontSize: 13 }}>{creator.username}</span>
+        </div>
+      ) : <span style={{ color: '#9ca3af' }}>-</span>
     },
     {
       title: '创建时间',
@@ -271,11 +293,8 @@ const ProjectList: React.FC = () => {
   return (
     <div className="project-management">
       <Card
-        bordered={false}
-        bodyStyle={{
-          padding: 0,
-          backgroundColor: '#fff'
-        }}
+        style={{ borderRadius: 14, border: '1px solid #ede9fe', boxShadow: '0 2px 12px rgba(99,102,241,0.07)' }}
+        styles={{ body: { padding: 0 } }}
       >
         <Tabs
           activeKey={activeTab}

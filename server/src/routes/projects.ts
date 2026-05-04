@@ -1,53 +1,47 @@
 import { FastifyPluginAsync } from 'fastify'
-import { prisma } from '../auth'
+import { prisma } from '../lib/prisma'
+import { requireAdmin, requireAuth } from '../lib/route-auth'
 import ExcelJS from 'exceljs'
 import path from 'path'
 import fs from 'fs'
-
-const requireAuth = async (
-  request: import('fastify').FastifyRequest,
-  reply: import('fastify').FastifyReply
-): Promise<boolean> => {
-  if (!request.user) {
-    await reply.status(401).send({ success: false, error: { code: 'UNAUTHORIZED', message: '未登录' } })
-    return false
-  }
-  return true
-}
-
-const requireAdmin = async (
-  request: import('fastify').FastifyRequest,
-  reply: import('fastify').FastifyReply
-): Promise<boolean> => {
-  if (!request.user || !['admin', 'super_admin'].includes(request.user.role)) {
-    await reply.status(403).send({ success: false, error: { code: 'FORBIDDEN', message: '权限不足' } })
-    return false
-  }
-  return true
-}
+import { serializeProject, serializeWorkItem } from '../utils/enumTransform'
+import { parsePagination, paginationMeta } from '../lib/pagination'
 
 const projectRoutes: FastifyPluginAsync = async (fastify) => {
   // 获取所有项目
   fastify.get('/', async (request, reply) => {
     if (!await requireAuth(request, reply)) return
 
-    const { status, search } = request.query as { status?: string; search?: string }
+    const { status, search, page: pageStr, limit: limitStr } = request.query as {
+      status?: string; search?: string; page?: string; limit?: string
+    }
 
     const where: Record<string, unknown> = {}
     if (status) where.status = status
     if (search) where.name = { contains: search }
 
-    const projects = await prisma.projects.findMany({
-      where,
-      include: {
-        users: {
-          select: { id: true, username: true, avatar: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+    const { page, limit, skip } = parsePagination({ page: pageStr, limit: limitStr })
 
-    return reply.send({ success: true, data: projects })
+    const [projects, total] = await Promise.all([
+      prisma.projects.findMany({
+        where,
+        include: {
+          users: {
+            select: { id: true, username: true, avatar: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.projects.count({ where })
+    ])
+
+    return reply.send({
+      success: true,
+      data: projects.map(p => serializeProject(p as any)),
+      meta: paginationMeta(total, page, limit)
+    })
   })
 
   // 创建新项目（仅管理员）
@@ -83,7 +77,7 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
       }
     })
 
-    return reply.status(201).send({ success: true, data: project })
+    return reply.status(201).send({ success: true, data: serializeProject(project as any) })
   })
 
   // 获取单个项目详情
@@ -115,7 +109,7 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: '项目不存在' } })
     }
 
-    return reply.send({ success: true, data: project })
+    return reply.send({ success: true, data: serializeProject(project as any) })
   })
 
   // 更新项目（管理员或创建者）
@@ -156,7 +150,7 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
 
     const updated = await prisma.projects.update({ where: { id }, data: updateData })
 
-    return reply.send({ success: true, data: updated })
+    return reply.send({ success: true, data: serializeProject(updated as any) })
   })
 
   // 删除项目（管理员或创建者）
@@ -260,12 +254,13 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
     workItemsSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } }
 
     for (const item of project.workitems) {
+      const s = serializeWorkItem(item as any)
       workItemsSheet.addRow({
         id: item.id,
         title: item.title,
-        type: item.type,
-        status: item.status,
-        priority: item.priority,
+        type: s.type,
+        status: s.status,
+        priority: s.priority,
         creator: item.users_workitems_createdByIdTousers?.username || '',
         assignee: item.users_workitems_assigneeIdTousers?.username || '',
         source: item.source || '',

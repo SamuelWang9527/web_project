@@ -3,6 +3,7 @@ import Fastify, { FastifyInstance } from 'fastify'
 import cors from '@fastify/cors'
 import multipart from '@fastify/multipart'
 import staticFiles from '@fastify/static'
+import compress from '@fastify/compress'
 import path from 'path'
 
 import authPlugin from './plugins/auth.plugin'
@@ -33,6 +34,13 @@ export async function buildApp(): Promise<FastifyInstance> {
     limits: {
       fileSize: parseInt(process.env.MAX_FILE_SIZE ?? '20971520'), // 20MB
     },
+  })
+
+  // Compression (gzip)
+  await app.register(compress, {
+    global: true,
+    threshold: 1024,
+    encodings: ['gzip', 'deflate'],
   })
 
   // Auth plugin（JWT 验证，注入 request.user）
@@ -66,6 +74,12 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(staticFiles, {
     root: uploadsDir,
     prefix: '/uploads/',
+    setHeaders(res, filePath) {
+      const ext = filePath.split('.').pop()?.toLowerCase()
+      if (ext !== 'jpg' && ext !== 'jpeg' && ext !== 'png' && ext !== 'gif' && ext !== 'webp') {
+        res.setHeader('Content-Disposition', 'attachment')
+      }
+    },
   })
 
   // 静态文件服务 - exports
@@ -84,8 +98,15 @@ export async function buildApp(): Promise<FastifyInstance> {
     decorateReply: false,
   })
 
-  app.setNotFoundHandler((_request, reply) => {
-    reply.sendFile('index.html', clientDistDir)
+  app.setNotFoundHandler((request, reply) => {
+    const pathOnly = request.url.split('?')[0] ?? request.url
+    if (pathOnly.startsWith('/api')) {
+      return reply.status(404).send({
+        success: false,
+        error: { code: 'NOT_FOUND', message: '接口不存在' },
+      })
+    }
+    return reply.sendFile('index.html', clientDistDir)
   })
 
   return app

@@ -1,58 +1,38 @@
 import { FastifyPluginAsync } from 'fastify'
-import { prisma } from '../auth'
+import { prisma } from '../lib/prisma'
+import { requireAdmin, requireAuth, requireSuperAdmin } from '../lib/route-auth'
 import bcrypt from 'bcryptjs'
 import path from 'path'
 import fs from 'fs'
 import { pipeline } from 'stream/promises'
 import { randomUUID } from 'crypto'
-
-const requireAuth = async (
-  request: import('fastify').FastifyRequest,
-  reply: import('fastify').FastifyReply
-): Promise<boolean> => {
-  if (!request.user) {
-    await reply.status(401).send({ success: false, error: { code: 'UNAUTHORIZED', message: '未登录' } })
-    return false
-  }
-  return true
-}
-
-const requireAdmin = async (
-  request: import('fastify').FastifyRequest,
-  reply: import('fastify').FastifyReply
-): Promise<boolean> => {
-  if (!request.user || !['admin', 'super_admin'].includes(request.user.role)) {
-    await reply.status(403).send({ success: false, error: { code: 'FORBIDDEN', message: '权限不足' } })
-    return false
-  }
-  return true
-}
-
-const requireSuperAdmin = async (
-  request: import('fastify').FastifyRequest,
-  reply: import('fastify').FastifyReply
-): Promise<boolean> => {
-  if (!request.user || request.user.role !== 'super_admin') {
-    await reply.status(403).send({ success: false, error: { code: 'FORBIDDEN', message: '权限不足' } })
-    return false
-  }
-  return true
-}
+import { parsePagination, paginationMeta } from '../lib/pagination'
 
 const userRoutes: FastifyPluginAsync = async (fastify) => {
   // 获取所有用户（仅管理员）
   fastify.get('/', async (request, reply) => {
     if (!await requireAdmin(request, reply)) return
 
-    const users = await prisma.users.findMany({
-      select: {
-        id: true, username: true, phone: true, email: true,
-        brand: true, role: true, status: true, avatar: true,
-        createdAt: true, updatedAt: true
-      }
-    })
+    const { page: pageStr, limit: limitStr } = request.query as { page?: string; limit?: string }
+    const { page, limit, skip } = parsePagination({ page: pageStr, limit: limitStr })
 
-    return reply.send({ success: true, data: users })
+    const where = {}
+
+    const [users, total] = await Promise.all([
+      prisma.users.findMany({
+        where,
+        select: {
+          id: true, username: true, phone: true, email: true,
+          brand: true, role: true, status: true, avatar: true,
+          createdAt: true, updatedAt: true
+        },
+        skip,
+        take: limit
+      }),
+      prisma.users.count({ where })
+    ])
+
+    return reply.send({ success: true, data: users, meta: paginationMeta(total, page, limit) })
   })
 
   // 获取管理员用户列表（用于分配负责人）

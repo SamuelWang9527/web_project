@@ -1,17 +1,9 @@
 import { FastifyPluginAsync } from 'fastify'
-import { prisma } from '../auth'
+import { prisma } from '../lib/prisma'
+import { requireAuth } from '../lib/route-auth'
 import type { Prisma } from '../generated/prisma/client'
-
-const requireAuth = async (
-  request: import('fastify').FastifyRequest,
-  reply: import('fastify').FastifyReply
-): Promise<boolean> => {
-  if (!request.user) {
-    await reply.status(401).send({ success: false, error: { code: 'UNAUTHORIZED', message: '未登录' } })
-    return false
-  }
-  return true
-}
+import { toEnumStatus, serializeWorkItem, zhStatus, zhPriority } from '../utils/enumTransform'
+import { parsePagination, paginationMeta } from '../lib/pagination'
 
 const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
   // 获取仪表盘统计数据
@@ -103,7 +95,8 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
     if (!await requireAuth(request, reply)) return
 
     const {
-      title, type, status, priority, assigneeId, source, createdById
+      title, type, status, priority, assigneeId, source, createdById,
+      page: pageStr, limit: limitStr
     } = request.query as {
       title?: string
       type?: string
@@ -112,6 +105,8 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
       assigneeId?: string
       source?: string
       createdById?: string
+      page?: string
+      limit?: string
     }
 
     const where: Record<string, unknown> = {
@@ -120,8 +115,11 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
 
     if (title) where.title = { contains: title }
     if (type) where.type = type
-    // Allow status filter only if not a completed/closed status
-    if (status && status !== 'Completed' && status !== 'Closed') where.status = status
+    // Normalize Chinese status from client; only apply if not completed/closed
+    const normalizedStatus = toEnumStatus(status)
+    if (normalizedStatus && normalizedStatus !== 'Completed' && normalizedStatus !== 'Closed') {
+      where.status = normalizedStatus
+    }
     if (priority) where.priority = priority
     if (assigneeId) where.assigneeId = parseInt(assigneeId)
     if (source) where.source = source
@@ -132,18 +130,25 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
       where.createdById = request.user!.id
     }
 
-    const pendingItems = await prisma.workitems.findMany({
-      where: where as Prisma.workitemsWhereInput,
-      include: {
-        users_workitems_assigneeIdTousers: { select: { id: true, username: true, avatar: true } },
-        users_workitems_createdByIdTousers: { select: { id: true, username: true, avatar: true } },
-        projects: { select: { id: true, name: true } }
-      },
-      orderBy: [
-        { priority: 'asc' },
-        { createdAt: 'desc' }
-      ]
-    })
+    const { page, limit, skip } = parsePagination({ page: pageStr, limit: limitStr })
+
+    const [pendingItems, total] = await Promise.all([
+      prisma.workitems.findMany({
+        where: where as Prisma.workitemsWhereInput,
+        include: {
+          users_workitems_assigneeIdTousers: { select: { id: true, username: true, avatar: true } },
+          users_workitems_createdByIdTousers: { select: { id: true, username: true, avatar: true } },
+          projects: { select: { id: true, name: true } }
+        },
+        orderBy: [
+          { priority: 'asc' },
+          { createdAt: 'desc' }
+        ],
+        skip,
+        take: limit
+      }),
+      prisma.workitems.count({ where: where as Prisma.workitemsWhereInput })
+    ])
 
     // Add daysFromCreation for each item
     const today = new Date()
@@ -153,7 +158,11 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
       return { ...item, daysFromCreation: diffDays }
     })
 
-    return reply.send({ success: true, data: result })
+    return reply.send({
+      success: true,
+      data: result.map(item => serializeWorkItem(item as any)),
+      meta: paginationMeta(total, page, limit)
+    })
   })
 
   // 获取甘特图数据
@@ -201,11 +210,11 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
       title: item.title,
       start: item.scheduledStartDate,
       end: item.scheduledEndDate,
-      progress: item.status === 'Completed' ? 100 :
-                item.status === 'InProgress' ? 50 : 0,
+      // Compare against Prisma English enum names before serializing
+      progress: item.status === 'Completed' ? 100 : item.status === 'InProgress' ? 50 : 0,
       type: item.type,
-      priority: item.priority,
-      status: item.status,
+      priority: zhPriority(item.priority as string),
+      status: zhStatus(item.status as string),
       project: item.projects?.name ?? null,
       assignee: item.users_workitems_assigneeIdTousers?.username ?? null
     }))

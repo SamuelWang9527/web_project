@@ -1,18 +1,18 @@
 import { FastifyPluginAsync } from 'fastify'
-import { prisma } from '../auth'
+import { prisma } from '../lib/prisma'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
 const authRoutes: FastifyPluginAsync = async (fastify) => {
   // 登录 — 返回 JWT token（与现有前端兼容）
   fastify.post('/login', async (request, reply) => {
-    const { username, password } = request.body as { username: string; password: string }
+    const { email, password } = request.body as { email: string; password: string }
 
-    const user = await prisma.users.findUnique({ where: { username } })
+    const user = await prisma.users.findFirst({ where: { email } })
     if (!user) {
       return reply.status(401).send({
         success: false,
-        error: { code: 'INVALID_CREDENTIALS', message: '用户名或密码错误' },
+        error: { code: 'INVALID_CREDENTIALS', message: '邮箱或密码错误' },
       })
     }
 
@@ -20,7 +20,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     if (!valid) {
       return reply.status(401).send({
         success: false,
-        error: { code: 'INVALID_CREDENTIALS', message: '用户名或密码错误' },
+        error: { code: 'INVALID_CREDENTIALS', message: '邮箱或密码错误' },
       })
     }
 

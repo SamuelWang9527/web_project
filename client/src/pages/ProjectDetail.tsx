@@ -27,7 +27,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { useAuth } from '../contexts/AuthContext';
 import * as api from '../utils/api';
-import { renderPriorityTag, renderStatusTag, renderTypeTag } from '../utils/tagRenderers';
+import { WorkItemStatusTag, WorkItemPriorityTag, WorkItemTypeTag, ProjectStatusTag } from '@/components/common/StatusTag';
 
 const { Option } = Select;
 const { TabPane } = Tabs;
@@ -66,10 +66,9 @@ const ProjectDetail: React.FC = () => {
   // 获取管理员列表
   const fetchAdmins = async () => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const apiAny = api as any;
-      const data = await apiAny.getAdmins();
-      setAdmins(data);
+      const response = await api.getAdmins();
+      const data = (response.data as any)?.data || [];
+      setAdmins(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('获取管理员列表失败:', error);
     }
@@ -213,35 +212,55 @@ const ProjectDetail: React.FC = () => {
       dataIndex: 'type',
       key: 'type',
       width: 100,
-      render: renderTypeTag
+      render: (val: any) => <WorkItemTypeTag type={val} />
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: renderStatusTag
+      render: (val: any) => <WorkItemStatusTag status={val} />
     },
     {
       title: '紧急程度',
       dataIndex: 'priority',
       key: 'priority',
       width: 100,
-      render: renderPriorityTag
+      render: (val: any) => <WorkItemPriorityTag priority={val} />
     },
     {
       title: '负责人',
       dataIndex: 'assignee',
       key: 'assignee',
       width: 120,
-      render: (assignee: any) => assignee ? assignee.username : '未分配'
+      render: (user: any) => user ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+            background: ['linear-gradient(135deg,#6366f1,#8b5cf6)','linear-gradient(135deg,#f59e0b,#fbbf24)','linear-gradient(135deg,#10b981,#34d399)','linear-gradient(135deg,#ef4444,#f87171)','linear-gradient(135deg,#0ea5e9,#38bdf8)','linear-gradient(135deg,#ec4899,#f472b6)'][user.id % 6],
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, fontWeight: 700, color: '#fff',
+          }}>{user.username.charAt(0).toUpperCase()}</div>
+          <span style={{ fontSize: 13 }}>{user.username}</span>
+        </div>
+      ) : <span style={{ color: '#9ca3af' }}>-</span>
     },
     {
       title: '创建者',
       dataIndex: 'creator',
       key: 'creator',
       width: 120,
-      render: (creator: any) => creator ? creator.username : '-'
+      render: (user: any) => user ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+            background: ['linear-gradient(135deg,#6366f1,#8b5cf6)','linear-gradient(135deg,#f59e0b,#fbbf24)','linear-gradient(135deg,#10b981,#34d399)','linear-gradient(135deg,#ef4444,#f87171)','linear-gradient(135deg,#0ea5e9,#38bdf8)','linear-gradient(135deg,#ec4899,#f472b6)'][user.id % 6],
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, fontWeight: 700, color: '#fff',
+          }}>{user.username.charAt(0).toUpperCase()}</div>
+          <span style={{ fontSize: 13 }}>{user.username}</span>
+        </div>
+      ) : <span style={{ color: '#9ca3af' }}>-</span>
     },
     {
       title: '创建日期',
@@ -309,7 +328,7 @@ const ProjectDetail: React.FC = () => {
         >
           返回项目列表
         </Button>
-        <Card>
+        <Card style={{ borderRadius: 14, border: '1px solid #ede9fe', boxShadow: '0 2px 12px rgba(99,102,241,0.07)', marginBottom: 16 }}>
           <div style={{ textAlign: 'center', padding: '50px' }}>
             项目不存在或已被删除
           </div>
@@ -347,10 +366,10 @@ const ProjectDetail: React.FC = () => {
       </div>
 
       {/* 项目详情 */}
-      <Card title={`项目详情: ${project.name}`} style={{ marginBottom: 24 }}>
+      <Card title={`项目详情: ${project.name}`} style={{ borderRadius: 14, border: '1px solid #ede9fe', boxShadow: '0 2px 12px rgba(99,102,241,0.07)', marginBottom: 24 }}>
         <Descriptions bordered column={2}>
           <Descriptions.Item label="项目名称">{project.name}</Descriptions.Item>
-          <Descriptions.Item label="状态">{renderStatusTag(project.status)}</Descriptions.Item>
+          <Descriptions.Item label="状态"><ProjectStatusTag status={project.status} /></Descriptions.Item>
           <Descriptions.Item label="开始日期">
             {project.startDate ? new Date(project.startDate).toLocaleDateString() : '-'}
           </Descriptions.Item>
@@ -372,6 +391,7 @@ const ProjectDetail: React.FC = () => {
       {/* 工作项列表 */}
       <Card
         title="工作项列表"
+        style={{ borderRadius: 14, border: '1px solid #ede9fe', boxShadow: '0 2px 12px rgba(99,102,241,0.07)', marginBottom: 16 }}
         extra={
           <Button
             type="primary"
@@ -386,7 +406,7 @@ const ProjectDetail: React.FC = () => {
           <TabPane tab="全部" key="all">
             <Table
               columns={workItemColumns}
-              dataSource={project.WorkItems || []}
+              dataSource={project.workitems || []}
               rowKey="id"
               pagination={{ pageSize: 10 }}
             />
@@ -394,7 +414,7 @@ const ProjectDetail: React.FC = () => {
           <TabPane tab="待处理" key="pending">
             <Table
               columns={workItemColumns}
-              dataSource={(project.WorkItems || []).filter((item: any) => item.status === '待处理')}
+              dataSource={(project.workitems || []).filter((item: any) => item.status === '待处理')}
               rowKey="id"
               pagination={{ pageSize: 10 }}
             />
@@ -402,7 +422,7 @@ const ProjectDetail: React.FC = () => {
           <TabPane tab="进行中" key="inProgress">
             <Table
               columns={workItemColumns}
-              dataSource={(project.WorkItems || []).filter((item: any) => item.status === '进行中')}
+              dataSource={(project.workitems || []).filter((item: any) => item.status === '进行中')}
               rowKey="id"
               pagination={{ pageSize: 10 }}
             />
@@ -410,7 +430,7 @@ const ProjectDetail: React.FC = () => {
           <TabPane tab="已完成" key="completed">
             <Table
               columns={workItemColumns}
-              dataSource={(project.WorkItems || []).filter((item: any) => item.status === '已完成')}
+              dataSource={(project.workitems || []).filter((item: any) => item.status === '已完成')}
               rowKey="id"
               pagination={{ pageSize: 10 }}
             />
@@ -418,7 +438,7 @@ const ProjectDetail: React.FC = () => {
           <TabPane tab="已关闭" key="closed">
             <Table
               columns={workItemColumns}
-              dataSource={(project.WorkItems || []).filter((item: any) => item.status === '关闭')}
+              dataSource={(project.workitems || []).filter((item: any) => item.status === '关闭')}
               rowKey="id"
               pagination={{ pageSize: 10 }}
             />

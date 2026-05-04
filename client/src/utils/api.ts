@@ -26,14 +26,13 @@ instance.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
-      window.location.href = '/login'
     }
     return Promise.reject(error)
   }
 )
 
 // ——— Auth ———
-export const login = (data: { username: string; password: string }) =>
+export const login = (data: { email: string; password: string }) =>
   instance.post<ApiSuccess<{ token: string; user: User }>>('/auth/login', data)
 
 export const register = (data: { username: string; email: string; password: string }) =>
@@ -85,16 +84,17 @@ export const uploadAttachment = (workItemId: number, file: File) => {
   })
 }
 
-export const downloadFile = (fileUrl: string) => {
-  const token = localStorage.getItem('token')
+export const downloadFile = (fileUrl: string, filename?: string) => {
   const url = fileUrl.startsWith('http') ? fileUrl : `${window.location.origin}${fileUrl}`
   const link = document.createElement('a')
-  link.href = token ? `${url}?token=${token}` : url
-  link.download = ''
+  link.href = url
+  link.download = filename || ''
+  document.body.appendChild(link)
   link.click()
+  document.body.removeChild(link)
 }
 
-export const exportWorkItemsToExcel = (params?: Record<string, unknown>) =>
+export const exportWorkItems = (params?: Record<string, unknown>) =>
   instance.get('/work-items/export', { params, responseType: 'blob' })
 
 // ——— Tickets ———
@@ -115,7 +115,7 @@ export const getDashboardStats = (params?: Record<string, unknown>) =>
   instance.get<ApiSuccess<Record<string, unknown>>>('/dashboard/stats', { params })
 
 export const getPendingItems = (params?: Record<string, unknown>) =>
-  instance.get<ApiSuccess<WorkItem[]>>('/dashboard/pending', { params })
+  instance.get<ApiSuccess<WorkItem[]>>('/dashboard/pending-items', { params })
 
 // ——— Users ———
 export const getUsers = (params?: Record<string, unknown>) =>
@@ -143,9 +143,6 @@ export const addWorkItemComment = (workItemId: number, data: { content: string }
 
 export const deleteWorkItemAttachment = (workItemId: number, attachmentId: string) =>
   instance.delete(`/work-items/${workItemId}/attachments/${attachmentId}`)
-
-export const exportWorkItems = (params?: Record<string, unknown>) =>
-  instance.get('/work-items/export', { params, responseType: 'blob' })
 
 export const exportProject = (id: number) =>
   instance.get(`/projects/${id}/export`, { responseType: 'blob' })

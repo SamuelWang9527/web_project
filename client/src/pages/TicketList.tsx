@@ -17,7 +17,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import * as api from '../utils/api';
-import { renderPriorityTag, renderStatusTag } from '../utils/tagRenderers';
+import { TicketStatusTag, TicketPriorityTag } from '@/components/common/StatusTag';
 
 const { Option } = Select;
 const { TabPane } = Tabs;
@@ -120,14 +120,14 @@ const TicketList: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: renderStatusTag
+      render: (val: any) => <TicketStatusTag status={val} />
     },
     {
       title: '紧急程度',
       dataIndex: 'priority',
       key: 'priority',
       width: 100,
-      render: renderPriorityTag
+      render: (val: any) => <TicketPriorityTag priority={val} />
     },
     {
       title: '负责人',
@@ -169,7 +169,7 @@ const TicketList: React.FC = () => {
       <h1>工单管理</h1>
 
       {/* 筛选器 */}
-      <Card style={{ marginBottom: 16 }}>
+      <Card style={{ borderRadius: 14, border: '1px solid #ede9fe', boxShadow: '0 2px 12px rgba(99,102,241,0.07)', marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
           <div style={{ display: 'flex', gap: 16 }}>
             <Input
@@ -215,8 +215,8 @@ const TicketList: React.FC = () => {
       </Card>
 
       {/* 工单列表 */}
-      <Card>
-        <Tabs activeKey={activeTab} onChange={handleTabChange}>
+      <Card style={{ borderRadius: 14, border: '1px solid #ede9fe', boxShadow: '0 2px 12px rgba(99,102,241,0.07)' }}>
+        <Tabs activeKey={activeTab} onChange={handleTabChange} tabBarStyle={{ margin: '0 0 16px', borderBottom: '1px solid #ede9fe' }}>
           <TabPane tab="全部工单" key="all">
             <Spin spinning={loading}>
               <Table

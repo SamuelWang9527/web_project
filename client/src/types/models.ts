@@ -10,7 +10,7 @@ export interface User {
   updatedAt: string
 }
 
-export type ProjectStatus = 'planning' | 'in_progress' | 'completed' | 'on_hold'
+export type ProjectStatus = '待处理' | '进行中' | '已完成' | '关闭'
 
 export interface Project {
   id: number
@@ -25,8 +25,8 @@ export interface Project {
   updatedAt: string
 }
 
-export type WorkItemStatus = 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled'
-export type WorkItemPriority = 'low' | 'medium' | 'high' | 'urgent'
+export type WorkItemStatus = '待处理' | '进行中' | '已完成' | '关闭'
+export type WorkItemPriority = '紧急' | '高' | '中' | '低'
 
 export interface WorkItem {
   id: number
@@ -47,8 +47,8 @@ export interface WorkItem {
   updatedAt: string
 }
 
-export type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed'
-export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent'
+export type TicketStatus = '待处理' | '进行中' | '已完成' | '关闭'
+export type TicketPriority = '紧急' | '高' | '中' | '低'
 
 export interface Ticket {
   id: number

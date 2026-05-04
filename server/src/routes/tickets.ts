@@ -1,28 +1,9 @@
 import { FastifyPluginAsync } from 'fastify'
-import { prisma } from '../auth'
+import { prisma } from '../lib/prisma'
+import { requireAdmin, requireAuth } from '../lib/route-auth'
 import type { Prisma } from '../generated/prisma/client'
-
-const requireAuth = async (
-  request: import('fastify').FastifyRequest,
-  reply: import('fastify').FastifyReply
-): Promise<boolean> => {
-  if (!request.user) {
-    await reply.status(401).send({ success: false, error: { code: 'UNAUTHORIZED', message: '未登录' } })
-    return false
-  }
-  return true
-}
-
-const requireAdmin = async (
-  request: import('fastify').FastifyRequest,
-  reply: import('fastify').FastifyReply
-): Promise<boolean> => {
-  if (!request.user || !['admin', 'super_admin'].includes(request.user.role)) {
-    await reply.status(403).send({ success: false, error: { code: 'FORBIDDEN', message: '权限不足' } })
-    return false
-  }
-  return true
-}
+import { toEnumStatus, toEnumPriority, serializeTicket } from '../utils/enumTransform'
+import { parsePagination, paginationMeta } from '../lib/pagination'
 
 const ticketRoutes: FastifyPluginAsync = async (fastify) => {
   // 获取工单列表
@@ -31,7 +12,7 @@ const ticketRoutes: FastifyPluginAsync = async (fastify) => {
 
     const {
       status, priority, search, createdById, assigneeId,
-      unassigned, startDate, endDate
+      unassigned, startDate, endDate, page: pageStr, limit: limitStr
     } = request.query as {
       status?: string
       priority?: string
@@ -41,12 +22,14 @@ const ticketRoutes: FastifyPluginAsync = async (fastify) => {
       unassigned?: string
       startDate?: string
       endDate?: string
+      page?: string
+      limit?: string
     }
 
     const where: Record<string, unknown> = {}
 
-    if (status) where.status = status
-    if (priority) where.priority = priority
+    if (status) where.status = toEnumStatus(status)
+    if (priority) where.priority = toEnumPriority(priority)
     if (search) where.title = { contains: search }
     if (createdById) where.createdById = parseInt(createdById)
     if (unassigned === 'true') {
@@ -72,20 +55,31 @@ const ticketRoutes: FastifyPluginAsync = async (fastify) => {
       where.createdById = request.user!.id
     }
 
-    const tickets = await prisma.tickets.findMany({
-      where,
-      include: {
-        users_tickets_assigneeIdTousers: {
-          select: { id: true, username: true, avatar: true, role: true }
-        },
-        users_tickets_createdByIdTousers: {
-          select: { id: true, username: true, avatar: true, role: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+    const { page, limit, skip } = parsePagination({ page: pageStr, limit: limitStr })
 
-    return reply.send({ success: true, data: tickets })
+    const [tickets, total] = await Promise.all([
+      prisma.tickets.findMany({
+        where,
+        include: {
+          users_tickets_assigneeIdTousers: {
+            select: { id: true, username: true, avatar: true, role: true }
+          },
+          users_tickets_createdByIdTousers: {
+            select: { id: true, username: true, avatar: true, role: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.tickets.count({ where })
+    ])
+
+    return reply.send({
+      success: true,
+      data: tickets.map(t => serializeTicket(t as any)),
+      meta: paginationMeta(total, page, limit)
+    })
   })
 
   // 创建工单
@@ -142,7 +136,7 @@ const ticketRoutes: FastifyPluginAsync = async (fastify) => {
       }
     })
 
-    return reply.status(201).send({ success: true, data: ticket })
+    return reply.status(201).send({ success: true, data: serializeTicket(ticket as any) })
   })
 
   // 获取单个工单详情
@@ -172,7 +166,7 @@ const ticketRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN', message: '没有权限查看此工单' } })
     }
 
-    return reply.send({ success: true, data: ticket })
+    return reply.send({ success: true, data: serializeTicket(ticket as any) })
   })
 
   // 更新工单（仅管理员）
@@ -217,7 +211,7 @@ const ticketRoutes: FastifyPluginAsync = async (fastify) => {
       }
     })
 
-    return reply.send({ success: true, data: updated })
+    return reply.send({ success: true, data: serializeTicket(updated as any) })
   })
 
   // 添加评论

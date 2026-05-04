@@ -1,30 +1,14 @@
 import { FastifyPluginAsync } from 'fastify'
-import { prisma } from '../../auth'
+import { prisma } from '../../lib/prisma'
+import { requireAdmin, requireAuth } from '../../lib/route-auth'
+import { parsePagination, paginationMeta, PaginationQuery } from '../../lib/pagination'
 import ExcelJS from 'exceljs'
 import path from 'path'
 import fs from 'fs'
-
-const requireAuth = async (
-  request: import('fastify').FastifyRequest,
-  reply: import('fastify').FastifyReply
-): Promise<boolean> => {
-  if (!request.user) {
-    await reply.status(401).send({ success: false, error: { code: 'UNAUTHORIZED', message: '未登录' } })
-    return false
-  }
-  return true
-}
-
-const requireAdmin = async (
-  request: import('fastify').FastifyRequest,
-  reply: import('fastify').FastifyReply
-): Promise<boolean> => {
-  if (!request.user || !['admin', 'super_admin'].includes(request.user.role)) {
-    await reply.status(403).send({ success: false, error: { code: 'FORBIDDEN', message: '权限不足' } })
-    return false
-  }
-  return true
-}
+import {
+  toEnumStatus, toEnumType, toEnumPriority, toEnumSource,
+  serializeWorkItem, zhStatus,
+} from '../../utils/enumTransform'
 
 // Field display name map for activity logging
 function getFieldDisplayName(field: string): string {
@@ -78,18 +62,21 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
 
     const {
       title, projectId, type, status, priority,
-      assigneeId, source, startDate, endDate, createdById
+      assigneeId, source, startDate, endDate, createdById,
+      page: pageStr, limit: limitStr,
     } = request.query as Record<string, string | undefined>
+
+    const { page, limit, skip } = parsePagination({ page: pageStr, limit: limitStr })
 
     const where: Record<string, unknown> = {}
 
     if (title) where.title = { contains: title }
     if (projectId) where.projectId = parseInt(projectId)
-    if (type) where.type = type
-    if (status) where.status = status
-    if (priority) where.priority = priority
+    if (type) where.type = toEnumType(type)
+    if (status) where.status = toEnumStatus(status)
+    if (priority) where.priority = toEnumPriority(priority)
     if (assigneeId) where.assigneeId = parseInt(assigneeId)
-    if (source) where.source = source
+    if (source) where.source = toEnumSource(source)
     if (createdById) where.createdById = parseInt(createdById)
 
     if (startDate && endDate) {
@@ -100,17 +87,26 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
       where.createdAt = { lte: new Date(endDate) }
     }
 
-    const workItems = await prisma.workitems.findMany({
-      where,
-      include: {
-        users_workitems_assigneeIdTousers: { select: { id: true, username: true, avatar: true } },
-        users_workitems_createdByIdTousers: { select: { id: true, username: true, avatar: true } },
-        projects: { select: { id: true, name: true } }
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+    const [workItems, total] = await Promise.all([
+      prisma.workitems.findMany({
+        where,
+        include: {
+          users_workitems_assigneeIdTousers: { select: { id: true, username: true, avatar: true } },
+          users_workitems_createdByIdTousers: { select: { id: true, username: true, avatar: true } },
+          projects: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.workitems.count({ where }),
+    ])
 
-    return reply.send({ success: true, data: workItems })
+    return reply.send({
+      success: true,
+      data: workItems.map(item => serializeWorkItem(item as any)),
+      meta: paginationMeta(total, page, limit),
+    })
   })
 
   // 获取待排期工作项（仅管理员）
@@ -133,7 +129,7 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
       orderBy: { createdAt: 'desc' }
     })
 
-    return reply.send({ success: true, data: workItems })
+    return reply.send({ success: true, data: workItems.map(item => serializeWorkItem(item as any)) })
   })
 
   // 导出工作项为 Excel
@@ -187,16 +183,17 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
     worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } }
 
     for (const item of workItems) {
+      const s = serializeWorkItem(item as any)
       worksheet.addRow({
         id: item.id,
         title: item.title,
-        type: item.type,
-        status: item.status,
-        priority: item.priority,
+        type: s.type,
+        status: s.status,
+        priority: s.priority,
         project: item.projects?.name || '',
         creator: item.users_workitems_createdByIdTousers?.username || '',
         assignee: item.users_workitems_assigneeIdTousers?.username || '',
-        source: item.source || '',
+        source: s.source || '',
         createdAt: item.createdAt ? new Date(item.createdAt).toLocaleString() : '',
         expectedCompletionDate: item.expectedCompletionDate ? new Date(item.expectedCompletionDate).toLocaleDateString() : '',
         scheduledStartDate: item.scheduledStartDate ? new Date(item.scheduledStartDate).toLocaleDateString() : '',
@@ -269,7 +266,7 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
         size: a.size || 0
       }))
 
-    return reply.send({ success: true, data: { ...workItem, attachments } })
+    return reply.send({ success: true, data: serializeWorkItem({ ...workItem, attachments } as any) })
   })
 
   // 创建工作项
@@ -308,11 +305,11 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
     const workItem = await prisma.workitems.create({
       data: {
         title: String(title),
-        type: (type as any) || 'Task',
+        type: (toEnumType(type as string | undefined) as any) || 'Task',
         description: description ? String(description) : '',
-        status: (status as any) || 'Pending',
-        priority: (priority as any) || 'Medium',
-        source: source ? (source as any) : null,
+        status: (toEnumStatus(status as string | undefined) as any) || 'Pending',
+        priority: (toEnumPriority(priority as string | undefined) as any) || 'Medium',
+        source: source ? (toEnumSource(source as string) as any) : null,
         expectedCompletionDate: expectedCompletionDate ? new Date(String(expectedCompletionDate)) : null,
         projectId: projectId ? Number(projectId) : null,
         assigneeId: assigneeId ? Number(assigneeId) : null,
@@ -338,7 +335,7 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
-    return reply.status(201).send({ success: true, data: workItem })
+    return reply.status(201).send({ success: true, data: serializeWorkItem(workItem as any) })
   })
 
   // 更新工作项
@@ -352,23 +349,53 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: '工作项不存在' } })
     }
 
-    // Only admin or creator can update
     const isAdmin = ['admin', 'super_admin'].includes(request.user!.role)
     const isCreator = workItem.createdById === request.user!.id
     if (!isAdmin && !isCreator) {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN', message: '权限不足' } })
     }
 
-    const body = request.body as Record<string, unknown>
+    const rawBody = request.body as Record<string, unknown>
+    const body: Record<string, unknown> = {
+      ...rawBody,
+      ...(rawBody.status !== undefined && { status: toEnumStatus(String(rawBody.status)) }),
+      ...(rawBody.type !== undefined && { type: toEnumType(String(rawBody.type)) }),
+      ...(rawBody.priority !== undefined && { priority: toEnumPriority(String(rawBody.priority)) }),
+      ...(rawBody.source !== undefined && { source: toEnumSource(String(rawBody.source)) }),
+    }
 
     const updateData: Record<string, unknown> = { updatedAt: new Date() }
+    const userId = request.user!.id
+    const now = new Date()
 
-    // Tracked fields for activity logging
+    // Collect all activity log entries — no DB writes yet
+    type ActivityEntry = {
+      workItemId: number; userId: number; type: string
+      field: string | null; oldValue: string | null; newValue: string | null
+      description: string; createdAt: Date; updatedAt: Date
+    }
+    const activityLogs: ActivityEntry[] = []
+    const addLog = (
+      type: string, field: string | null,
+      oldValue: string | null, newValue: string | null, description: string
+    ) => activityLogs.push({ workItemId: id, userId, type, field, oldValue, newValue, description, createdAt: now, updatedAt: now })
+
+    // Pre-fetch assignee names in parallel if assigneeId is changing
     const trackedFields = [
       'title', 'type', 'description', 'status', 'priority', 'source',
       'expectedCompletionDate', 'scheduledStartDate', 'scheduledEndDate',
       'projectId', 'assigneeId', 'estimatedHours', 'actualHours'
     ]
+
+    const assigneeChanging = body.assigneeId !== undefined &&
+      String(body.assigneeId) !== String((workItem as any).assigneeId ?? '')
+
+    const [oldAssignee, newAssignee] = assigneeChanging
+      ? await Promise.all([
+          workItem.assigneeId ? prisma.users.findUnique({ where: { id: workItem.assigneeId }, select: { username: true } }) : null,
+          body.assigneeId ? prisma.users.findUnique({ where: { id: Number(body.assigneeId) }, select: { username: true } }) : null,
+        ])
+      : [null, null]
 
     for (const field of trackedFields) {
       if (body[field] === undefined) continue
@@ -380,31 +407,26 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
           ? (body[field] ? Number(body[field]) : null)
           : body[field]
 
-      // Activity logging per field
       if (field === 'status') {
-        await recordActivity(id, request.user!.id, 'status_change', field,
-          String((workItem as any)[field] ?? ''), String(body[field]),
-          `将状态从 "${(workItem as any)[field]}" 修改为 "${body[field]}"`)
+        const oldStatusZh = zhStatus((workItem as any)[field] as string)
+        const newStatusZh = zhStatus(String(body[field]))
+        addLog('status_change', field, oldStatusZh, newStatusZh, `将状态从 "${oldStatusZh}" 修改为 "${newStatusZh}"`)
 
-        // Auto-set completionDate when status → Completed
         if (body[field] === 'Completed' && (workItem as any)[field] !== 'Completed') {
           const today = new Date().toISOString().split('T')[0]
           updateData.completionDate = new Date(today)
-          await recordActivity(id, request.user!.id, 'update', 'completionDate',
+          addLog('update', 'completionDate',
             workItem.completionDate ? String(workItem.completionDate) : null,
             today, `自动设置完成日期为 ${today}`)
         }
       } else if (field === 'assigneeId') {
-        const oldAssignee = workItem.assigneeId ? await prisma.users.findUnique({ where: { id: workItem.assigneeId } }) : null
-        const newAssignee = body[field] ? await prisma.users.findUnique({ where: { id: Number(body[field]) } }) : null
-        await recordActivity(id, request.user!.id, 'assignee_change', field,
+        addLog('assignee_change', field,
           workItem.assigneeId ? String(workItem.assigneeId) : null,
           body[field] ? String(body[field]) : null,
           `将负责人从 ${oldAssignee?.username ?? '未分配'} 修改为 ${newAssignee?.username ?? '未分配'}`)
       } else {
-        // For date fields normalize before comparing
-        let oldVal: string = String((workItem as any)[field] ?? '')
-        let newVal: string = String(body[field])
+        let oldVal = String((workItem as any)[field] ?? '')
+        let newVal = String(body[field])
         let different = true
 
         if (field.toLowerCase().includes('date') && oldVal && newVal) {
@@ -418,25 +440,23 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         if (different) {
-          await recordActivity(id, request.user!.id, 'update', field, oldVal, newVal,
+          addLog('update', field, oldVal, newVal,
             `修改了 ${getFieldDisplayName(field)} 字段，从 "${oldVal || '空'}" 修改为 "${newVal}"`)
         }
       }
     }
 
-    // Handle completionDate explicitly (client may provide it)
+    // completionDate explicit override
     if (body.completionDate !== undefined) {
       const oldDate = workItem.completionDate ? new Date(workItem.completionDate).toISOString().split('T')[0] : null
       const newDate = body.completionDate ? new Date(String(body.completionDate)).toISOString().split('T')[0] : null
       if (oldDate !== newDate) {
         updateData.completionDate = body.completionDate ? new Date(String(body.completionDate)) : null
-        await recordActivity(id, request.user!.id, 'update', 'completionDate',
-          oldDate, newDate, `修改了 完成日期 字段，从 "${oldDate || '空'}" 修改为 "${newDate}"`)
+        addLog('update', 'completionDate', oldDate, newDate, `修改了 完成日期 字段，从 "${oldDate || '空'}" 修改为 "${newDate}"`)
       }
     }
 
-    // Handle attachments: merge existing + new (new ones handled by attachments route)
-    // In this route we only accept existingAttachments (JSON array)
+    // Attachments
     if (body.existingAttachments !== undefined) {
       let existing: unknown[] = []
       try {
@@ -444,26 +464,22 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
         if (!Array.isArray(existing)) existing = []
       } catch { existing = [] }
 
-      // Detect deleted attachments and log
       const currentAttachments: unknown[] = Array.isArray(workItem.attachments)
         ? (workItem.attachments as unknown[])
-        : (() => {
-            try { return JSON.parse(String(workItem.attachments || '[]')) } catch { return [] }
-          })()
+        : (() => { try { return JSON.parse(String(workItem.attachments || '[]')) } catch { return [] } })()
 
       const deleted = (currentAttachments as Record<string, unknown>[]).filter(
         a => !(existing as Record<string, unknown>[]).some(e => e.path === a.path)
       )
       for (const att of deleted) {
-        await recordActivity(id, request.user!.id, 'attachment_delete', 'attachments',
-          String(att.originalName || att.originalname || ''), null,
-          `删除了附件 "${att.originalName || att.originalname || ''}"`)
+        const name = String(att.originalName || att.originalname || '')
+        addLog('attachment_delete', 'attachments', name, null, `删除了附件 "${name}"`)
       }
 
       updateData.attachments = existing
     }
 
-    // Handle comment from body
+    // Comment
     if (body.comment) {
       let commentContent: string
       try {
@@ -472,21 +488,27 @@ const workItemRoutes: FastifyPluginAsync = async (fastify) => {
       } catch {
         commentContent = String(body.comment)
       }
-      await recordActivity(id, request.user!.id, 'comment', null, null, commentContent, commentContent)
+      addLog('comment', null, null, commentContent, commentContent)
     }
 
-    await prisma.workitems.update({ where: { id }, data: updateData })
+    // Single update + batch activity insert + re-fetch in parallel
+    const [updated] = await Promise.all([
+      prisma.workitems.update({ where: { id }, data: updateData }).then(() =>
+        prisma.workitems.findUnique({
+          where: { id },
+          include: {
+            users_workitems_assigneeIdTousers: { select: { id: true, username: true, avatar: true } },
+            users_workitems_createdByIdTousers: { select: { id: true, username: true, avatar: true } },
+            projects: { select: { id: true, name: true } },
+          },
+        })
+      ),
+      activityLogs.length > 0
+        ? prisma.workitem_activities.createMany({ data: activityLogs as any })
+        : Promise.resolve(),
+    ])
 
-    const updated = await prisma.workitems.findUnique({
-      where: { id },
-      include: {
-        users_workitems_assigneeIdTousers: { select: { id: true, username: true, avatar: true } },
-        users_workitems_createdByIdTousers: { select: { id: true, username: true, avatar: true } },
-        projects: { select: { id: true, name: true } }
-      }
-    })
-
-    return reply.send({ success: true, data: updated })
+    return reply.send({ success: true, data: serializeWorkItem(updated as any) })
   })
 
   // 删除工作项
