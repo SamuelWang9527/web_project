@@ -25,12 +25,17 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('preHandler', async (request) => {
     try {
       const authHeader = request.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) {
+      const queryToken = (request.query as Record<string, string>).token
+
+      const rawToken = authHeader?.startsWith('Bearer ')
+        ? authHeader.slice(7)
+        : (queryToken ?? null)
+
+      if (!rawToken) {
         request.user = null
         return
       }
-      const token = authHeader.slice(7)
-      const payload = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload
+      const payload = jwt.verify(rawToken, process.env.JWT_SECRET!) as JwtPayload
       request.user = {
         id: payload.id,
         username: payload.username,
