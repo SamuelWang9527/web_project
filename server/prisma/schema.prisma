@@ -61,6 +61,7 @@ model users {
   workitem_activities                    workitem_activities[]
   workitems_workitems_assigneeIdTousers  workitems[]           @relation("workitems_assigneeIdTousers")
   workitems_workitems_createdByIdTousers workitems[]           @relation("workitems_createdByIdTousers")
+  notifications notifications[]
 }
 
 model workitem_activities {
@@ -112,6 +113,22 @@ model workitems {
   @@index([assigneeId], map: "assigneeId")
   @@index([createdById], map: "createdById")
   @@index([projectId], map: "projectId")
+}
+
+model notifications {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  type      String   @db.VarChar(20)
+  title     String   @db.VarChar(100)
+  body      String   @db.VarChar(500)
+  linkPath  String   @db.VarChar(200)
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now()) @db.DateTime(0)
+
+  user      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
 }
 
 enum workitem_activities_type {
